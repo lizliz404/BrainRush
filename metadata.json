@@ -1,0 +1,5 @@
+{
+  "name": "Brain Rush",
+  "description": "A math-based runner game where you dodge wrong answers and collect correct ones.",
+  "requestFramePermissions": []
+}
