@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig } from '../types';
+import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning } from '../types';
 import { generateQuestion } from '../services/mathService';
 import { playSuccessSound, playErrorSound } from '../services/audioService';
 
@@ -20,7 +20,10 @@ interface GameEngineProps {
   gameState: GameState;
   difficulty: Difficulty;
   avatar: AvatarConfig;
+  tuning: GameTuning;
+  initialLives: number;
   onScoreUpdate: (score: number) => void;
+  onLivesUpdate: (lives: number) => void;
   onGameOver: (finalScore: number) => void;
   onQuestionUpdate: (q: string) => void;
 }
@@ -29,7 +32,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   gameState, 
   difficulty,
   avatar,
+  tuning,
+  initialLives,
   onScoreUpdate, 
+  onLivesUpdate,
   onGameOver,
   onQuestionUpdate
 }) => {
@@ -38,7 +44,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const previousTimeRef = useRef<number>(0);
   
   const gameStateRef = useRef(gameState);
+  const difficultyRef = useRef(difficulty);
+  const tuningRef = useRef(tuning);
   const scoreRef = useRef(0);
+  const livesRef = useRef(initialLives);
   
   const playerRef = useRef<PlayerEntity>({ x: 50, width: 8 });
   const blocksRef = useRef<BlockEntity[]>([]);
@@ -55,11 +64,23 @@ const GameEngine: React.FC<GameEngineProps> = ({
   }, [gameState]);
 
   useEffect(() => {
+    difficultyRef.current = difficulty;
+  }, [difficulty]);
+
+  useEffect(() => {
     avatarRef.current = avatar;
   }, [avatar]);
 
+  useEffect(() => {
+    tuningRef.current = tuning;
+  }, [tuning]);
+
+  useEffect(() => {
+    livesRef.current = initialLives;
+  }, [initialLives]);
+
   const spawnQuestion = () => {
-    const q = generateQuestion(scoreRef.current, difficulty);
+    const q = generateQuestion(scoreRef.current, difficultyRef.current, tuningRef.current);
     onQuestionUpdate(q.text);
 
     const laneCount = q.options.length;
@@ -188,8 +209,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
     if (isMovingRight.current) playerRef.current.x = Math.min(92, playerRef.current.x + moveSpeed);
 
     let speedMultiplier = 1;
-    if (difficulty === Difficulty.EASY) speedMultiplier = 0.7;
-    if (difficulty === Difficulty.HARD) speedMultiplier = 1.4;
+    if (difficultyRef.current === Difficulty.EASY) speedMultiplier = 0.65;
+    if (difficultyRef.current === Difficulty.HARD) speedMultiplier = 1.4;
+    if (difficultyRef.current === Difficulty.DEVIL) speedMultiplier = 1.9;
 
     const baseDropSpeed = (0.25 + (scoreRef.current * 0.025)) * speedMultiplier * timeScale;
     
@@ -284,9 +306,12 @@ const GameEngine: React.FC<GameEngineProps> = ({
         blocksRef.current = []; 
         spawnQuestion();
       } else {
-        isDeadRef.current = true;
         playErrorSound();
         shakeRef.current = 500; 
+
+        const nextLives = Math.max(0, livesRef.current - 1);
+        livesRef.current = nextLives;
+        onLivesUpdate(nextLives);
         
         // Error Effects
         for(let i=0; i<20; i++) {
@@ -302,19 +327,63 @@ const GameEngine: React.FC<GameEngineProps> = ({
             maxLife: 1200
           });
         }
-        
-        setTimeout(() => {
-          onGameOver(scoreRef.current);
-        }, 600);
+
+        effectsRef.current.push({
+          id: Math.random(),
+          type: 'text',
+          text: '-1 ❤',
+          color: '#ef4444',
+          x: px,
+          y: headY - 20,
+          vx: 0,
+          vy: -2,
+          life: 900,
+          maxLife: 900
+        });
+
+        blocksRef.current = [];
+
+        if (nextLives <= 0) {
+          isDeadRef.current = true;
+          setTimeout(() => {
+            onGameOver(scoreRef.current);
+          }, 600);
+        } else {
+          spawnQuestion();
+        }
       }
       return;
     } 
     
     if (blocksRef.current.length === 0) {
-       isDeadRef.current = true;
-       setTimeout(() => {
-         onGameOver(scoreRef.current);
-       }, 600);
+       playErrorSound();
+       shakeRef.current = 400;
+
+       const nextLives = Math.max(0, livesRef.current - 1);
+       livesRef.current = nextLives;
+       onLivesUpdate(nextLives);
+
+       effectsRef.current.push({
+         id: Math.random(),
+         type: 'text',
+         text: 'MISS -1 ❤',
+         color: '#f97316',
+         x: px,
+         y: headY - 20,
+         vx: 0,
+         vy: -2,
+         life: 1000,
+         maxLife: 1000
+       });
+
+       if (nextLives <= 0) {
+         isDeadRef.current = true;
+         setTimeout(() => {
+           onGameOver(scoreRef.current);
+         }, 600);
+       } else {
+         spawnQuestion();
+       }
     }
   };
 
@@ -433,15 +502,18 @@ const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     if (gameState === GameState.PLAYING) {
       scoreRef.current = 0;
+      livesRef.current = initialLives;
       playerRef.current = { x: 50, width: 8 };
       blocksRef.current = [];
       effectsRef.current = [];
       shakeRef.current = 0;
       previousTimeRef.current = 0;
       isDeadRef.current = false;
+      onScoreUpdate(0);
+      onLivesUpdate(initialLives);
       spawnQuestion();
     }
-  }, [gameState]);
+  }, [gameState, initialLives, onLivesUpdate, onScoreUpdate]);
 
   return (
     <canvas

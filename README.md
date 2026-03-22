@@ -1,20 +1,167 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Brain Rush（头脑冲刺）
 
-# Run and deploy your AI Studio app
+> 一个面向小学生的网页数学小游戏。  
+> 可以把它理解为 **“飞机大战 / 躲避接物 × 小学算术训练”**：题目显示在上方，多个答案方块从空中落下，玩家控制底部角色左右移动，接住正确答案、避开错误答案。
 
-This contains everything you need to run your app locally.
+## 项目简介
 
-View your app in AI Studio: https://ai.studio/apps/4a1be721-b1d3-47eb-9586-bfe52036fd5b
+Brain Rush 的目标不是把练习册简单搬到屏幕上，而是把基础口算训练包装成一个反馈快速、节奏明确、容易上手的小游戏。
 
-## Run Locally
+适合的使用场景包括：
 
-**Prerequisites:**  Node.js
+- 寒假 / 暑假期间的轻量练习。
+- 家长陪练时的短时互动。
+- 课堂外的加减乘除反应训练。
 
+当前版本支持：
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- 中英文界面切换。
+- 多档难度选择：Easy / Normal / Hard / Devil。
+- 血量机制：答错或漏题会扣除 1 点血量，不同难度拥有不同初始血量。
+- 菜单内同屏题目调节：可指定题型倾向与数值范围。
+- 角色外观自定义与分数解锁。
+- 本地保存最高分和角色外观。
+
+## 核心玩法
+
+1. 进入主菜单后选择难度。
+2. 开始游戏后，顶部会显示一道算术题。
+3. 屏幕上方会掉落多个写有答案的方块。
+4. 玩家通过键盘方向键、A / D，或鼠标 / 手指拖动控制角色左右移动。
+5. 接到正确答案会加分并进入下一题。
+6. 接错答案或漏掉题目会扣除 1 点血量；血量归零后游戏结束。
+
+## 难度设计
+
+| 难度 | 初始血量 | 设计特点 |
+| --- | --- | --- |
+| Easy | 4 | 方块速度较慢，题目范围更基础，适合入门体验 |
+| Normal | 3 | 默认模式，兼顾反应与口算 |
+| Hard | 2 | 方块更快、选项更多、题目更复杂 |
+| Devil | 1 | 地狱模式，容错极低，速度和题目复杂度最高 |
+
+## 题目调节
+
+除了常规难度外，菜单中还支持“同屏调节”题目生成参数，无需像更衣室一样切换到全屏页面：
+
+- **题型倾向**
+  - 随机混合
+  - 偏向加减
+  - 偏向乘除
+- **数值范围**
+  - 随机范围
+  - 十以内
+  - 二十以内
+  - 五十以上
+
+这使得 Brain Rush 不再只是“随分数升难”，而是可以更主动地贴近某一轮练习目标。
+
+## 技术栈
+
+- **前端框架**：React 19
+- **语言**：TypeScript
+- **构建工具**：Vite
+- **界面样式**：Tailwind CSS（通过 CDN 注入配置）
+- **图标**：lucide-react
+- **游戏渲染**：HTML5 Canvas
+- **音效**：Web Audio API
+- **数据存储**：浏览器 `localStorage`
+
+## 项目结构
+
+```text
+BrainRush/
+├── App.tsx                        # 应用外层 UI、菜单、HUD、语言切换、换装入口
+├── index.tsx                      # React 入口
+├── index.html                     # HTML 模板、Tailwind 配置、字体与挂载点
+├── types.ts                       # 游戏状态、难度、题目与实体类型定义
+├── components/
+│   └── GameEngine.tsx             # Canvas 游戏循环、碰撞检测、输入处理、血量与判定
+├── services/
+│   ├── mathService.ts             # 数学题生成、题型倾向与数值范围逻辑
+│   └── audioService.ts            # 成功 / 失败音效
+├── metadata.json                  # 项目元数据
+└── migrated_prompt_history/       # 项目早期 AI 生成记录（历史资料）
+```
+
+## 架构说明
+
+### 1. `App.tsx`
+
+负责管理整个应用的界面状态，包括：
+
+- 主菜单
+- 游戏中 HUD
+- Game Over 界面
+- 换装界面
+- 语言切换
+- 最高分与外观数据持久化
+
+### 2. `components/GameEngine.tsx`
+
+这是游戏核心：
+
+- 使用 Canvas 绘制角色、方块和特效。
+- 使用 `requestAnimationFrame` 驱动游戏循环。
+- 处理键盘、鼠标、触摸输入。
+- 负责碰撞检测、分数更新、血量扣减、题目切换和结束判定。
+
+### 3. `services/mathService.ts`
+
+负责按照当前分数和难度生成题目，包括：
+
+- 加法
+- 减法
+- 乘法
+- 更高难度下的整除题
+
+同时控制选项数量与干扰项范围，让不同难度的体验有明显差异。
+
+### 4. `services/audioService.ts`
+
+通过 Web Audio API 生成简单即时音效：
+
+- 答对时的正反馈音
+- 答错或失误时的错误提示音
+
+## 本地开发
+
+### 环境要求
+
+- Node.js 18+（推荐）
+- npm
+
+### 安装依赖
+
+```bash
+npm install
+```
+
+### 启动开发环境
+
+```bash
+npm run dev
+```
+
+默认启动后可在本地浏览器中访问 Vite 开发服务器。
+
+### 生产构建
+
+```bash
+npm run build
+```
+
+## 当前数据持久化
+
+当前版本使用 `localStorage` 保存以下内容：
+
+- `brainRushHighScore`：历史最高分
+- `brainRushAvatar`：当前角色外观配置
+
+## 后续可扩展方向
+
+- 增加按年级 / 知识点划分的题库。
+- 增加错题本与训练报告。
+- 增加家长 / 老师视角的数据面板。
+- 增加连续登录、任务制、关卡制等长期激励机制。
+- 增加更丰富的角色、特效与音效反馈。

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, Difficulty, AvatarConfig } from './types';
+import { GameState, Difficulty, AvatarConfig, GameTuning, NumberRangeMode, OperationFocus } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, BrainCircuit, Trophy, Settings, Lock, ArrowLeft, Shirt } from 'lucide-react';
+import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal } from 'lucide-react';
 import { initAudio } from './services/audioService';
 
 type Language = 'en' | 'zh';
@@ -11,6 +11,20 @@ const TRANSLATIONS = {
     title: 'Brain Rush',
     subtitle: 'Solve fast. Move faster.',
     difficulty: 'Difficulty',
+    practiceTuning: 'Practice Tuning',
+    tuningDescription: 'Decide what kinds of questions appear before you start.',
+    tuneQuestions: 'Tune Questions',
+    backToMenu: 'Back',
+    operationFocus: 'Operation Focus',
+    numberRange: 'Number Range',
+    operationRandom: 'Random Mix',
+    operationAddSub: 'Mostly + / -',
+    operationMulDiv: 'Mostly × / ÷',
+    rangeRandom: 'Random Range',
+    rangeWithin10: 'Within 10',
+    rangeWithin20: 'Within 20',
+    rangeAbove50: '50 and above',
+    lives: 'Lives',
     startGame: 'START GAME',
     customize: 'Customize Avatar',
     instruction: 'Use ← → arrows or Drag to move',
@@ -30,6 +44,20 @@ const TRANSLATIONS = {
     title: '头脑冲刺',
     subtitle: '算得快，躲得更快。',
     difficulty: '难度',
+    practiceTuning: '练习调节',
+    tuningDescription: '开始前先决定这局更偏向哪类题目。',
+    tuneQuestions: '调节题目',
+    backToMenu: '返回',
+    operationFocus: '题型倾向',
+    numberRange: '数值范围',
+    operationRandom: '随机混合',
+    operationAddSub: '偏向加减',
+    operationMulDiv: '偏向乘除',
+    rangeRandom: '随机范围',
+    rangeWithin10: '十以内',
+    rangeWithin20: '二十以内',
+    rangeAbove50: '五十以上',
+    lives: '血量',
     startGame: '开始游戏',
     customize: '自定义外观',
     instruction: '使用 ← → 方向键或拖拽来移动',
@@ -47,6 +75,13 @@ const TRANSLATIONS = {
   }
 };
 
+const DIFFICULTY_CONFIG: Record<Difficulty, { lives: number; label: { en: string; zh: string } }> = {
+  [Difficulty.EASY]: { lives: 4, label: { en: 'EASY', zh: '简单' } },
+  [Difficulty.NORMAL]: { lives: 3, label: { en: 'NORMAL', zh: '普通' } },
+  [Difficulty.HARD]: { lives: 2, label: { en: 'HARD', zh: '困难' } },
+  [Difficulty.DEVIL]: { lives: 1, label: { en: 'DEVIL', zh: '地狱' } },
+};
+
 const UNLOCKABLE_SETS = [
   { score: 0, head: '😃', body: '👕', legs: '👖' },
   { score: 10, head: '😎', body: '🧥', legs: '🩳' },
@@ -56,9 +91,16 @@ const UNLOCKABLE_SETS = [
   { score: 50, head: '🎃', body: '👗', legs: '👠' },
 ];
 
+const DEFAULT_TUNING: GameTuning = {
+  operationFocus: OperationFocus.RANDOM,
+  numberRange: NumberRangeMode.RANDOM,
+};
+
 export default function App() {
+  const [menuView, setMenuView] = useState<'main' | 'tuning'>('main');
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(DIFFICULTY_CONFIG[Difficulty.NORMAL].lives);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [lang, setLang] = useState<Language>('en');
   
@@ -77,6 +119,11 @@ export default function App() {
     return saved ? JSON.parse(saved) : { head: '😃', body: '👕', legs: '👖' };
   });
 
+  const [tuning, setTuning] = useState<GameTuning>(() => {
+    const saved = localStorage.getItem('brainRushTuning');
+    return saved ? JSON.parse(saved) : DEFAULT_TUNING;
+  });
+
   // Save when changed
   useEffect(() => {
     localStorage.setItem('brainRushHighScore', highScore.toString());
@@ -86,9 +133,41 @@ export default function App() {
     localStorage.setItem('brainRushAvatar', JSON.stringify(avatar));
   }, [avatar]);
 
+  useEffect(() => {
+    localStorage.setItem('brainRushTuning', JSON.stringify(tuning));
+  }, [tuning]);
+
+  const getOperationLabel = (focus: OperationFocus) => {
+    switch (focus) {
+      case OperationFocus.ADD_SUB:
+        return t.operationAddSub;
+      case OperationFocus.MUL_DIV:
+        return t.operationMulDiv;
+      case OperationFocus.RANDOM:
+      default:
+        return t.operationRandom;
+    }
+  };
+
+  const getRangeLabel = (range: NumberRangeMode) => {
+    switch (range) {
+      case NumberRangeMode.WITHIN_10:
+        return t.rangeWithin10;
+      case NumberRangeMode.WITHIN_20:
+        return t.rangeWithin20;
+      case NumberRangeMode.ABOVE_50:
+        return t.rangeAbove50;
+      case NumberRangeMode.RANDOM:
+      default:
+        return t.rangeRandom;
+    }
+  };
+
   const startGame = () => {
     initAudio();
     setScore(0);
+    setLives(DIFFICULTY_CONFIG[difficulty].lives);
+    setMenuView('main');
     setGameState(GameState.PLAYING);
   };
 
@@ -172,7 +251,7 @@ export default function App() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#1e1b4b] to-black opacity-80 z-0"></div>
 
       {/* Language Switcher */}
-      {(gameState === GameState.MENU || gameState === GameState.GAME_OVER) && (
+      {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
         <div className="absolute top-6 right-6 z-50 bg-black/40 backdrop-blur-md rounded-full p-1 flex items-center border border-white/10 shadow-lg">
           <button 
             onClick={() => setLang('en')} 
@@ -195,7 +274,10 @@ export default function App() {
           gameState={gameState}
           difficulty={difficulty}
           avatar={avatar}
+          tuning={tuning}
+          initialLives={DIFFICULTY_CONFIG[difficulty].lives}
           onScoreUpdate={setScore}
+          onLivesUpdate={setLives}
           onGameOver={handleGameOver}
           onQuestionUpdate={setCurrentQuestion}
         />
@@ -205,10 +287,29 @@ export default function App() {
       {gameState === GameState.PLAYING && (
         <div className="absolute top-0 left-0 w-full p-4 z-20 pointer-events-none">
           <div className="flex flex-col items-center gap-4">
-            
-            {/* Score Pill */}
-            <div className="bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-lg">
-              <span className="text-xl font-bold text-game-accent">{t.score}: {score}</span>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {/* Score Pill */}
+              <div className="bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-lg">
+                <span className="text-xl font-bold text-game-accent">{t.score}: {score}</span>
+              </div>
+
+              <div className="bg-black/40 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
+                <Heart size={18} className="text-rose-400 fill-current" />
+                <span className="text-base font-bold text-white">{t.lives}: {'❤'.repeat(lives)}</span>
+              </div>
+            </div>
+
+            <div className="bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
+              <span className="text-sm font-bold text-slate-200">
+                {t.difficulty}: {DIFFICULTY_CONFIG[difficulty].label[lang]} · {t.lives}: {DIFFICULTY_CONFIG[difficulty].lives}
+              </span>
+            </div>
+
+            <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
+              <span className="text-xs font-semibold text-slate-200">
+                {t.operationFocus}: {getOperationLabel(tuning.operationFocus)} · {t.numberRange}: {getRangeLabel(tuning.numberRange)}
+              </span>
             </div>
 
             {/* Question Card */}
@@ -225,10 +326,14 @@ export default function App() {
         </div>
       )}
 
+      {gameState === GameState.CUSTOMIZE && renderCustomizeMenu()}
+
       {/* Main Menu */}
       {gameState === GameState.MENU && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {menuView === 'main' ? (
+              <>
             <div className="flex justify-center mb-6">
               <div className="p-4 bg-game-accent rounded-2xl shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)]">
                 <BrainCircuit size={48} className="text-white md:w-16 md:h-16" />
@@ -254,11 +359,38 @@ export default function App() {
                         : 'text-slate-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    {diff === Difficulty.EASY ? (lang === 'zh' ? '简单' : 'EASY') : 
-                     diff === Difficulty.NORMAL ? (lang === 'zh' ? '普通' : 'NORMAL') : 
-                     (lang === 'zh' ? '困难' : 'HARD')}
+                    {DIFFICULTY_CONFIG[diff].label[lang]}
                   </button>
                 ))}
+              </div>
+              <p className="mt-3 text-xs text-slate-400">
+                {lang === 'zh'
+                  ? `简单 4 条命 / 普通 3 条命 / 困难 2 条命 / 地狱 1 条命`
+                  : `Easy 4 lives / Normal 3 lives / Hard 2 lives / Devil 1 life`}
+              </p>
+            </div>
+
+            <div className="mb-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white">{t.practiceTuning}</h3>
+                  <p className="mt-1 text-xs text-slate-400">{t.tuningDescription}</p>
+                </div>
+                <button
+                  onClick={() => setMenuView('tuning')}
+                  className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-colors hover:bg-white/20"
+                  aria-label={t.tuneQuestions}
+                >
+                  <SlidersHorizontal size={18} />
+                </button>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-200">
+                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                  {t.operationFocus}: {getOperationLabel(tuning.operationFocus)}
+                </span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                  {t.numberRange}: {getRangeLabel(tuning.numberRange)}
+                </span>
               </div>
             </div>
 
@@ -285,6 +417,75 @@ export default function App() {
                 <>Use <span className="font-bold text-slate-300">← →</span> arrows or <span className="font-bold text-slate-300">Drag</span> to move</>
               )}
             </div>
+              </>
+            ) : (
+              <div className="text-left">
+                <div className="mb-6 flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-white">{t.practiceTuning}</h2>
+                    <p className="mt-1 text-sm text-slate-400">{t.tuningDescription}</p>
+                  </div>
+                  <button
+                    onClick={() => setMenuView('main')}
+                    className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-white/20"
+                  >
+                    {t.backToMenu}
+                  </button>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.operationFocus}</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { value: OperationFocus.RANDOM, label: t.operationRandom },
+                      { value: OperationFocus.ADD_SUB, label: t.operationAddSub },
+                      { value: OperationFocus.MUL_DIV, label: t.operationMulDiv },
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => setTuning(prev => ({ ...prev, operationFocus: option.value }))}
+                        className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                          tuning.operationFocus === option.value
+                            ? 'border-cyan-300 bg-cyan-400/15 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-bold">{option.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.numberRange}</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { value: NumberRangeMode.RANDOM, label: t.rangeRandom },
+                      { value: NumberRangeMode.WITHIN_10, label: t.rangeWithin10 },
+                      { value: NumberRangeMode.WITHIN_20, label: t.rangeWithin20 },
+                      { value: NumberRangeMode.ABOVE_50, label: t.rangeAbove50 },
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => setTuning(prev => ({ ...prev, numberRange: option.value }))}
+                        className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                          tuning.numberRange === option.value
+                            ? 'border-indigo-300 bg-indigo-400/15 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-bold">{option.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
+                  <p>{t.operationFocus}: <span className="font-bold text-white">{getOperationLabel(tuning.operationFocus)}</span></p>
+                  <p className="mt-2">{t.numberRange}: <span className="font-bold text-white">{getRangeLabel(tuning.numberRange)}</span></p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

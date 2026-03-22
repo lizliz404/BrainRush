@@ -8,7 +8,26 @@ export enum GameState {
 export enum Difficulty {
   EASY = 'EASY',
   NORMAL = 'NORMAL',
-  HARD = 'HARD'
+  HARD = 'HARD',
+  DEVIL = 'DEVIL'
+}
+
+export enum OperationFocus {
+  RANDOM = 'RANDOM',
+  ADD_SUB = 'ADD_SUB',
+  MUL_DIV = 'MUL_DIV'
+}
+
+export enum NumberRangeMode {
+  RANDOM = 'RANDOM',
+  WITHIN_10 = 'WITHIN_10',
+  WITHIN_20 = 'WITHIN_20',
+  ABOVE_50 = 'ABOVE_50'
+}
+
+export interface GameTuning {
+  operationFocus: OperationFocus;
+  numberRange: NumberRangeMode;
 }
 
 export interface AvatarConfig {
