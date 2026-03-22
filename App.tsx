@@ -24,6 +24,16 @@ const TRANSLATIONS = {
     rangeWithin10: 'Within 10',
     rangeWithin20: 'Within 20',
     rangeAbove50: '50 and above',
+    allowRemainder: 'Allow Remainder',
+    allowNegative: 'Allow Negative',
+    toggleOn: 'On',
+    toggleOff: 'Off',
+    presets: 'Quick Presets',
+    presetBalanced: 'Balanced',
+    presetAdd20: 'Add/Sub 20',
+    presetMulDiv: 'Mul/Div Drill',
+    presetRemainder: 'Remainder',
+    presetSigned: 'Signed Challenge',
     lives: 'Lives',
     startGame: 'START GAME',
     customize: 'Customize Avatar',
@@ -57,6 +67,16 @@ const TRANSLATIONS = {
     rangeWithin10: '十以内',
     rangeWithin20: '二十以内',
     rangeAbove50: '五十以上',
+    allowRemainder: '允许余数',
+    allowNegative: '允许负数',
+    toggleOn: '开启',
+    toggleOff: '关闭',
+    presets: '快捷模板',
+    presetBalanced: '均衡模式',
+    presetAdd20: '20内加减',
+    presetMulDiv: '乘除专项',
+    presetRemainder: '余数除法',
+    presetSigned: '负数挑战',
     lives: '血量',
     startGame: '开始游戏',
     customize: '自定义外观',
@@ -94,6 +114,8 @@ const UNLOCKABLE_SETS = [
 const DEFAULT_TUNING: GameTuning = {
   operationFocus: OperationFocus.RANDOM,
   numberRange: NumberRangeMode.RANDOM,
+  allowRemainder: false,
+  allowNegative: false,
 };
 
 export default function App() {
@@ -121,7 +143,7 @@ export default function App() {
 
   const [tuning, setTuning] = useState<GameTuning>(() => {
     const saved = localStorage.getItem('brainRushTuning');
-    return saved ? JSON.parse(saved) : DEFAULT_TUNING;
+    return saved ? { ...DEFAULT_TUNING, ...JSON.parse(saved) } : DEFAULT_TUNING;
   });
 
   // Save when changed
@@ -162,6 +184,62 @@ export default function App() {
         return t.rangeRandom;
     }
   };
+
+  const getToggleLabel = (enabled: boolean) => (enabled ? t.toggleOn : t.toggleOff);
+
+  const presets = [
+    {
+      key: 'balanced',
+      label: t.presetBalanced,
+      value: DEFAULT_TUNING,
+    },
+    {
+      key: 'add20',
+      label: t.presetAdd20,
+      value: {
+        operationFocus: OperationFocus.ADD_SUB,
+        numberRange: NumberRangeMode.WITHIN_20,
+        allowRemainder: false,
+        allowNegative: false,
+      },
+    },
+    {
+      key: 'muldiv',
+      label: t.presetMulDiv,
+      value: {
+        operationFocus: OperationFocus.MUL_DIV,
+        numberRange: NumberRangeMode.WITHIN_20,
+        allowRemainder: false,
+        allowNegative: false,
+      },
+    },
+    {
+      key: 'remainder',
+      label: t.presetRemainder,
+      value: {
+        operationFocus: OperationFocus.MUL_DIV,
+        numberRange: NumberRangeMode.WITHIN_20,
+        allowRemainder: true,
+        allowNegative: false,
+      },
+    },
+    {
+      key: 'signed',
+      label: t.presetSigned,
+      value: {
+        operationFocus: OperationFocus.ADD_SUB,
+        numberRange: NumberRangeMode.ABOVE_50,
+        allowRemainder: false,
+        allowNegative: true,
+      },
+    },
+  ];
+
+  const isPresetActive = (presetValue: GameTuning) =>
+    presetValue.operationFocus === tuning.operationFocus &&
+    presetValue.numberRange === tuning.numberRange &&
+    presetValue.allowRemainder === tuning.allowRemainder &&
+    presetValue.allowNegative === tuning.allowNegative;
 
   const startGame = () => {
     initAudio();
@@ -308,7 +386,7 @@ export default function App() {
 
             <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
               <span className="text-xs font-semibold text-slate-200">
-                {t.operationFocus}: {getOperationLabel(tuning.operationFocus)} · {t.numberRange}: {getRangeLabel(tuning.numberRange)}
+                {t.operationFocus}: {getOperationLabel(tuning.operationFocus)} · {t.numberRange}: {getRangeLabel(tuning.numberRange)} · {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)} · {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
               </span>
             </div>
 
@@ -390,6 +468,12 @@ export default function App() {
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">
                   {t.numberRange}: {getRangeLabel(tuning.numberRange)}
+                </span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                  {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)}
+                </span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                  {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
                 </span>
               </div>
             </div>
@@ -480,9 +564,68 @@ export default function App() {
                   </div>
                 </div>
 
+                <div className="mb-6">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.allowRemainder}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[false, true].map(option => (
+                      <button
+                        key={String(option)}
+                        onClick={() => setTuning(prev => ({ ...prev, allowRemainder: option }))}
+                        className={`rounded-2xl border px-4 py-3 text-center transition-all ${
+                          tuning.allowRemainder === option
+                            ? 'border-emerald-300 bg-emerald-400/15 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-bold">{getToggleLabel(option)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.allowNegative}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[false, true].map(option => (
+                      <button
+                        key={String(option)}
+                        onClick={() => setTuning(prev => ({ ...prev, allowNegative: option }))}
+                        className={`rounded-2xl border px-4 py-3 text-center transition-all ${
+                          tuning.allowNegative === option
+                            ? 'border-rose-300 bg-rose-400/15 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-bold">{getToggleLabel(option)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.presets}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {presets.map(preset => (
+                      <button
+                        key={preset.key}
+                        onClick={() => setTuning(preset.value)}
+                        className={`rounded-full border px-4 py-2 text-sm font-bold transition-all ${
+                          isPresetActive(preset.value)
+                            ? 'border-white bg-white text-game-bg'
+                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
                   <p>{t.operationFocus}: <span className="font-bold text-white">{getOperationLabel(tuning.operationFocus)}</span></p>
                   <p className="mt-2">{t.numberRange}: <span className="font-bold text-white">{getRangeLabel(tuning.numberRange)}</span></p>
+                  <p className="mt-2">{t.allowRemainder}: <span className="font-bold text-white">{getToggleLabel(tuning.allowRemainder)}</span></p>
+                  <p className="mt-2">{t.allowNegative}: <span className="font-bold text-white">{getToggleLabel(tuning.allowNegative)}</span></p>
                 </div>
               </div>
             )}

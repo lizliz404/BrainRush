@@ -28,6 +28,8 @@ export enum NumberRangeMode {
 export interface GameTuning {
   operationFocus: OperationFocus;
   numberRange: NumberRangeMode;
+  allowRemainder: boolean;
+  allowNegative: boolean;
 }
 
 export interface AvatarConfig {
@@ -38,15 +40,15 @@ export interface AvatarConfig {
 
 export interface Question {
   text: string;
-  answer: number;
-  options: number[]; // The values displayed on falling blocks
+  answer: string;
+  options: string[]; // The values displayed on falling blocks
 }
 
 export interface BlockEntity {
   id: string;
   x: number; // Percentage 0-100
   y: number; // Percentage 0-100
-  value: number;
+  value: string;
   width: number; // Percentage
   height: number; // Percentage (relative to screen aspect)
   isCorrect: boolean;
