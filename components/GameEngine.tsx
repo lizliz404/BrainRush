@@ -51,6 +51,11 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const difficultyRef = useRef(difficulty);
   const playModeRef = useRef(playMode);
   const tuningRef = useRef(tuning);
+  const onScoreUpdateRef = useRef(onScoreUpdate);
+  const onLivesUpdateRef = useRef(onLivesUpdate);
+  const onStatsUpdateRef = useRef(onStatsUpdate);
+  const onGameOverRef = useRef(onGameOver);
+  const onQuestionUpdateRef = useRef(onQuestionUpdate);
   const scoreRef = useRef(0);
   const livesRef = useRef(initialLives);
   const attemptsRef = useRef(0);
@@ -86,6 +91,26 @@ const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     tuningRef.current = tuning;
   }, [tuning]);
+
+  useEffect(() => {
+    onScoreUpdateRef.current = onScoreUpdate;
+  }, [onScoreUpdate]);
+
+  useEffect(() => {
+    onLivesUpdateRef.current = onLivesUpdate;
+  }, [onLivesUpdate]);
+
+  useEffect(() => {
+    onStatsUpdateRef.current = onStatsUpdate;
+  }, [onStatsUpdate]);
+
+  useEffect(() => {
+    onGameOverRef.current = onGameOver;
+  }, [onGameOver]);
+
+  useEffect(() => {
+    onQuestionUpdateRef.current = onQuestionUpdate;
+  }, [onQuestionUpdate]);
 
   useEffect(() => {
     livesRef.current = initialLives;
@@ -127,7 +152,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
   const spawnQuestion = () => {
     const q = generateQuestion(scoreRef.current, difficultyRef.current, tuningRef.current);
-    onQuestionUpdate(q.text);
+    onQuestionUpdateRef.current(q.text);
 
     const canvas = canvasRef.current;
     const dpr = window.devicePixelRatio || 1;
@@ -231,7 +256,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         timeLeftMsRef.current = Math.max(0, timeLeftMsRef.current - dt);
         const timeLeftSec = Math.ceil(timeLeftMsRef.current / 1000);
         const accuracy = attemptsRef.current > 0 ? Math.round((correctRef.current / attemptsRef.current) * 100) : 0;
-        onStatsUpdate({
+        onStatsUpdateRef.current({
           correct: correctRef.current,
           attempts: attemptsRef.current,
           accuracy,
@@ -240,7 +265,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
         if (timeLeftMsRef.current <= 0) {
           isDeadRef.current = true;
-          onGameOver(scoreRef.current);
+          onGameOverRef.current(scoreRef.current);
         }
       }
       update(dt);
@@ -350,7 +375,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         correctRef.current += 1;
         playSuccessSound();
         scoreRef.current += 1;
-        onScoreUpdate(scoreRef.current);
+        onScoreUpdateRef.current(scoreRef.current);
         
         // Success Effects
         effectsRef.current.push({
@@ -391,7 +416,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         const nextLives = isTimedMode ? livesRef.current : Math.max(0, livesRef.current - 1);
         if (!isTimedMode) {
           livesRef.current = nextLives;
-          onLivesUpdate(nextLives);
+          onLivesUpdateRef.current(nextLives);
         }
         
         // Error Effects
@@ -427,7 +452,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         if (!isTimedMode && nextLives <= 0) {
           isDeadRef.current = true;
           setTimeout(() => {
-            onGameOver(scoreRef.current);
+            onGameOverRef.current(scoreRef.current);
           }, 600);
         } else {
           spawnQuestion();
@@ -445,7 +470,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
        const nextLives = isTimedMode ? livesRef.current : Math.max(0, livesRef.current - 1);
        if (!isTimedMode) {
          livesRef.current = nextLives;
-         onLivesUpdate(nextLives);
+         onLivesUpdateRef.current(nextLives);
        }
 
        effectsRef.current.push({
@@ -464,7 +489,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
        if (!isTimedMode && nextLives <= 0) {
          isDeadRef.current = true;
          setTimeout(() => {
-           onGameOver(scoreRef.current);
+           onGameOverRef.current(scoreRef.current);
          }, 600);
        } else {
          spawnQuestion();
@@ -598,9 +623,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
       shakeRef.current = 0;
       previousTimeRef.current = 0;
       isDeadRef.current = false;
-      onScoreUpdate(0);
-      onLivesUpdate(playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives);
-      onStatsUpdate({
+      onScoreUpdateRef.current(0);
+      onLivesUpdateRef.current(playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives);
+      onStatsUpdateRef.current({
         correct: 0,
         attempts: 0,
         accuracy: 0,
@@ -608,7 +633,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       });
       spawnQuestion();
     }
-  }, [gameState, initialLives, onLivesUpdate, onScoreUpdate, onStatsUpdate, playMode]);
+  }, [gameState, initialLives, playMode]);
 
   return (
     <canvas
