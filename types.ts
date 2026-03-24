@@ -5,6 +5,11 @@ export enum GameState {
   CUSTOMIZE = 'CUSTOMIZE'
 }
 
+export enum PlayMode {
+  CLASSIC = 'CLASSIC',
+  QUICK_60 = 'QUICK_60'
+}
+
 export enum Difficulty {
   EASY = 'EASY',
   NORMAL = 'NORMAL',

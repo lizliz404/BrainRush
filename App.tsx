@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, Difficulty, AvatarConfig, GameTuning, NumberRangeMode, OperationFocus } from './types';
+import { GameState, Difficulty, AvatarConfig, GameTuning, NumberRangeMode, OperationFocus, PlayMode } from './types';
 import GameEngine from './components/GameEngine';
 import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal } from 'lucide-react';
 import { initAudio } from './services/audioService';
@@ -35,6 +35,10 @@ const TRANSLATIONS = {
     presetRemainder: 'Remainder',
     presetSigned: 'Signed Challenge',
     lives: 'Lives',
+    timer: 'Timer',
+    accuracy: 'Accuracy',
+    quickStart: '60s Quick Start',
+    quickModeNote: 'Low-threshold mode: fixed Normal settings + unlimited lives.',
     startGame: 'START GAME',
     customize: 'Customize Avatar',
     instruction: 'Use ← → arrows or Drag to move',
@@ -78,6 +82,10 @@ const TRANSLATIONS = {
     presetRemainder: '余数除法',
     presetSigned: '负数挑战',
     lives: '血量',
+    timer: '倒计时',
+    accuracy: '正确率',
+    quickStart: '60 秒快速练习',
+    quickModeNote: '低门槛模式：固定普通参数 + 无限命。',
     startGame: '开始游戏',
     customize: '自定义外观',
     instruction: '使用 ← → 方向键或拖拽来移动',
@@ -123,6 +131,11 @@ export default function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(DIFFICULTY_CONFIG[Difficulty.NORMAL].lives);
+  const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.CLASSIC);
+  const [attempts, setAttempts] = useState(0);
+  const [correct, setCorrect] = useState(0);
+  const [accuracy, setAccuracy] = useState(0);
+  const [timeLeftSec, setTimeLeftSec] = useState(60);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [lang, setLang] = useState<Language>('en');
   
@@ -243,8 +256,28 @@ export default function App() {
 
   const startGame = () => {
     initAudio();
+    setPlayMode(PlayMode.CLASSIC);
     setScore(0);
     setLives(DIFFICULTY_CONFIG[difficulty].lives);
+    setAttempts(0);
+    setCorrect(0);
+    setAccuracy(0);
+    setTimeLeftSec(60);
+    setMenuView('main');
+    setGameState(GameState.PLAYING);
+  };
+
+  const startQuickPractice = () => {
+    initAudio();
+    setPlayMode(PlayMode.QUICK_60);
+    setDifficulty(Difficulty.NORMAL);
+    setTuning(DEFAULT_TUNING);
+    setScore(0);
+    setLives(Number.MAX_SAFE_INTEGER);
+    setAttempts(0);
+    setCorrect(0);
+    setAccuracy(0);
+    setTimeLeftSec(60);
     setMenuView('main');
     setGameState(GameState.PLAYING);
   };
@@ -351,11 +384,18 @@ export default function App() {
         <GameEngine 
           gameState={gameState}
           difficulty={difficulty}
+          playMode={playMode}
           avatar={avatar}
           tuning={tuning}
           initialLives={DIFFICULTY_CONFIG[difficulty].lives}
           onScoreUpdate={setScore}
           onLivesUpdate={setLives}
+          onStatsUpdate={({ correct: nextCorrect, attempts: nextAttempts, accuracy: nextAccuracy, timeLeftSec: nextTimeLeft }) => {
+            setCorrect(nextCorrect);
+            setAttempts(nextAttempts);
+            setAccuracy(nextAccuracy);
+            setTimeLeftSec(nextTimeLeft);
+          }}
           onGameOver={handleGameOver}
           onQuestionUpdate={setCurrentQuestion}
         />
@@ -374,7 +414,9 @@ export default function App() {
 
               <div className="bg-black/40 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
                 <Heart size={18} className="text-rose-400 fill-current" />
-                <span className="text-base font-bold text-white">{t.lives}: {'❤'.repeat(lives)}</span>
+                <span className="text-base font-bold text-white">
+                  {t.lives}: {playMode === PlayMode.QUICK_60 ? '∞' : '❤'.repeat(lives)}
+                </span>
               </div>
             </div>
 
@@ -389,6 +431,14 @@ export default function App() {
                 {t.operationFocus}: {getOperationLabel(tuning.operationFocus)} · {t.numberRange}: {getRangeLabel(tuning.numberRange)} · {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)} · {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
               </span>
             </div>
+
+            {playMode === PlayMode.QUICK_60 && (
+              <div className="bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
+                <span className="text-sm font-bold text-amber-200">
+                  {t.timer}: {timeLeftSec}s · {t.accuracy}: {accuracy}% ({correct}/{attempts})
+                </span>
+              </div>
+            )}
 
             {/* Question Card */}
             <div className="bg-white/95 text-game-bg px-8 py-4 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transform transition-all animate-in fade-in slide-in-from-top-4 duration-300">
@@ -485,6 +535,14 @@ export default function App() {
               <Play className="fill-current w-5 h-5 md:w-6 md:h-6" />
               {t.startGame}
             </button>
+
+            <button
+              onClick={startQuickPractice}
+              className="w-full bg-amber-300 hover:bg-amber-200 text-game-bg font-black text-base md:text-lg py-3 md:py-4 rounded-2xl transition-colors mb-2"
+            >
+              {t.quickStart}
+            </button>
+            <p className="mb-4 text-xs text-amber-200/80">{t.quickModeNote}</p>
 
             <button 
               onClick={() => setGameState(GameState.CUSTOMIZE)}
@@ -638,24 +696,52 @@ export default function App() {
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-red-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="w-full max-w-md bg-white text-game-bg p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <h2 className="text-3xl md:text-4xl font-black text-game-wrong mb-2">{t.gameOver}</h2>
-            <p className="text-slate-500 font-bold mb-6 text-sm md:text-base">{t.missed}</p>
+            <p className="text-slate-500 font-bold mb-6 text-sm md:text-base">
+              {playMode === PlayMode.QUICK_60 ? `${t.timer} 60s` : t.missed}
+            </p>
             
-            <div className="bg-slate-100 rounded-2xl p-4 md:p-6 mb-8 flex justify-around">
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider">{t.score}</span>
-                <span className="text-3xl md:text-4xl font-black text-game-bg">{score}</span>
-              </div>
-              <div className="w-px bg-slate-300"></div>
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                  <Trophy size={12} /> {t.best}
-                </span>
-                <span className="text-3xl md:text-4xl font-black text-amber-500">{highScore}</span>
-              </div>
+            <div className="bg-slate-100 rounded-2xl p-4 md:p-6 mb-8">
+              {playMode === PlayMode.QUICK_60 ? (
+                <div className="flex justify-around">
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider">{t.score}</span>
+                    <span className="text-3xl md:text-4xl font-black text-game-bg">{score}</span>
+                  </div>
+                  <div className="w-px bg-slate-300"></div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider">{t.accuracy}</span>
+                    <span className="text-3xl md:text-4xl font-black text-emerald-600">{accuracy}%</span>
+                  </div>
+                  <div className="w-px bg-slate-300"></div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider">Q</span>
+                    <span className="text-3xl md:text-4xl font-black text-game-bg">{correct}/{attempts}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-around">
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider">{t.score}</span>
+                    <span className="text-3xl md:text-4xl font-black text-game-bg">{score}</span>
+                  </div>
+                  <div className="w-px bg-slate-300"></div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Trophy size={12} /> {t.best}
+                    </span>
+                    <span className="text-3xl md:text-4xl font-black text-amber-500">{highScore}</span>
+                  </div>
+                </div>
+              )}
+              {playMode === PlayMode.QUICK_60 && (
+                <div className="mt-4 text-xs font-semibold text-slate-500">
+                  {t.quickModeNote}
+                </div>
+              )}
             </div>
 
             <button 
-              onClick={startGame}
+              onClick={playMode === PlayMode.QUICK_60 ? startQuickPractice : startGame}
               className="w-full bg-game-bg hover:bg-slate-800 text-white font-black text-lg md:text-xl py-4 md:py-5 rounded-2xl transition-colors flex items-center justify-center gap-3 shadow-lg mb-4"
             >
               <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />

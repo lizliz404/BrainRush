@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning } from '../types';
+import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, PlayMode } from '../types';
 import { generateQuestion } from '../services/mathService';
 import { playSuccessSound, playErrorSound } from '../services/audioService';
 
@@ -19,11 +19,13 @@ interface EffectEntity {
 interface GameEngineProps {
   gameState: GameState;
   difficulty: Difficulty;
+  playMode: PlayMode;
   avatar: AvatarConfig;
   tuning: GameTuning;
   initialLives: number;
   onScoreUpdate: (score: number) => void;
   onLivesUpdate: (lives: number) => void;
+  onStatsUpdate: (stats: { correct: number; attempts: number; accuracy: number; timeLeftSec: number }) => void;
   onGameOver: (finalScore: number) => void;
   onQuestionUpdate: (q: string) => void;
 }
@@ -31,11 +33,13 @@ interface GameEngineProps {
 const GameEngine: React.FC<GameEngineProps> = ({ 
   gameState, 
   difficulty,
+  playMode,
   avatar,
   tuning,
   initialLives,
   onScoreUpdate, 
   onLivesUpdate,
+  onStatsUpdate,
   onGameOver,
   onQuestionUpdate
 }) => {
@@ -45,9 +49,13 @@ const GameEngine: React.FC<GameEngineProps> = ({
   
   const gameStateRef = useRef(gameState);
   const difficultyRef = useRef(difficulty);
+  const playModeRef = useRef(playMode);
   const tuningRef = useRef(tuning);
   const scoreRef = useRef(0);
   const livesRef = useRef(initialLives);
+  const attemptsRef = useRef(0);
+  const correctRef = useRef(0);
+  const timeLeftMsRef = useRef(60000);
   
   const playerRef = useRef<PlayerEntity>({ x: 50, width: 8 });
   const blocksRef = useRef<BlockEntity[]>([]);
@@ -66,6 +74,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     difficultyRef.current = difficulty;
   }, [difficulty]);
+
+  useEffect(() => {
+    playModeRef.current = playMode;
+  }, [playMode]);
 
   useEffect(() => {
     avatarRef.current = avatar;
@@ -215,6 +227,22 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const dt = Math.min(deltaTime, 64); 
 
     if (gameStateRef.current === GameState.PLAYING) {
+      if (playModeRef.current === PlayMode.QUICK_60 && !isDeadRef.current) {
+        timeLeftMsRef.current = Math.max(0, timeLeftMsRef.current - dt);
+        const timeLeftSec = Math.ceil(timeLeftMsRef.current / 1000);
+        const accuracy = attemptsRef.current > 0 ? Math.round((correctRef.current / attemptsRef.current) * 100) : 0;
+        onStatsUpdate({
+          correct: correctRef.current,
+          attempts: attemptsRef.current,
+          accuracy,
+          timeLeftSec
+        });
+
+        if (timeLeftMsRef.current <= 0) {
+          isDeadRef.current = true;
+          onGameOver(scoreRef.current);
+        }
+      }
       update(dt);
     }
     
@@ -318,6 +346,8 @@ const GameEngine: React.FC<GameEngineProps> = ({
       const blockBottom = by + bH;
 
       if ((hitBlock as BlockEntity).isCorrect) {
+        attemptsRef.current += 1;
+        correctRef.current += 1;
         playSuccessSound();
         scoreRef.current += 1;
         onScoreUpdate(scoreRef.current);
@@ -353,12 +383,16 @@ const GameEngine: React.FC<GameEngineProps> = ({
         blocksRef.current = []; 
         spawnQuestion();
       } else {
+        attemptsRef.current += 1;
         playErrorSound();
         shakeRef.current = 500; 
 
-        const nextLives = Math.max(0, livesRef.current - 1);
-        livesRef.current = nextLives;
-        onLivesUpdate(nextLives);
+        const isTimedMode = playModeRef.current === PlayMode.QUICK_60;
+        const nextLives = isTimedMode ? livesRef.current : Math.max(0, livesRef.current - 1);
+        if (!isTimedMode) {
+          livesRef.current = nextLives;
+          onLivesUpdate(nextLives);
+        }
         
         // Error Effects
         for(let i=0; i<20; i++) {
@@ -390,7 +424,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
         blocksRef.current = [];
 
-        if (nextLives <= 0) {
+        if (!isTimedMode && nextLives <= 0) {
           isDeadRef.current = true;
           setTimeout(() => {
             onGameOver(scoreRef.current);
@@ -403,12 +437,16 @@ const GameEngine: React.FC<GameEngineProps> = ({
     } 
     
     if (blocksRef.current.length === 0) {
+       attemptsRef.current += 1;
        playErrorSound();
        shakeRef.current = 400;
 
-       const nextLives = Math.max(0, livesRef.current - 1);
-       livesRef.current = nextLives;
-       onLivesUpdate(nextLives);
+       const isTimedMode = playModeRef.current === PlayMode.QUICK_60;
+       const nextLives = isTimedMode ? livesRef.current : Math.max(0, livesRef.current - 1);
+       if (!isTimedMode) {
+         livesRef.current = nextLives;
+         onLivesUpdate(nextLives);
+       }
 
        effectsRef.current.push({
          id: Math.random(),
@@ -423,7 +461,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
          maxLife: 1000
        });
 
-       if (nextLives <= 0) {
+       if (!isTimedMode && nextLives <= 0) {
          isDeadRef.current = true;
          setTimeout(() => {
            onGameOver(scoreRef.current);
@@ -550,7 +588,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     if (gameState === GameState.PLAYING) {
       scoreRef.current = 0;
-      livesRef.current = initialLives;
+      attemptsRef.current = 0;
+      correctRef.current = 0;
+      timeLeftMsRef.current = 60000;
+      livesRef.current = playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives;
       playerRef.current = { x: 50, width: 8 };
       blocksRef.current = [];
       effectsRef.current = [];
@@ -558,10 +599,16 @@ const GameEngine: React.FC<GameEngineProps> = ({
       previousTimeRef.current = 0;
       isDeadRef.current = false;
       onScoreUpdate(0);
-      onLivesUpdate(initialLives);
+      onLivesUpdate(playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives);
+      onStatsUpdate({
+        correct: 0,
+        attempts: 0,
+        accuracy: 0,
+        timeLeftSec: 60
+      });
       spawnQuestion();
     }
-  }, [gameState, initialLives, onLivesUpdate, onScoreUpdate]);
+  }, [gameState, initialLives, onLivesUpdate, onScoreUpdate, onStatsUpdate, playMode]);
 
   return (
     <canvas
