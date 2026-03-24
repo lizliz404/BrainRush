@@ -79,25 +79,63 @@ const GameEngine: React.FC<GameEngineProps> = ({
     livesRef.current = initialLives;
   }, [initialLives]);
 
+  const getViewportMetrics = (w: number, h: number, laneCount: number) => {
+    const shortSide = Math.min(w, h);
+    const isPortrait = h > w;
+    const horizontalPaddingPct = isPortrait ? 8 : 10;
+    const availableWidthPct = 100 - horizontalPaddingPct * 2;
+    const laneWidthPct = availableWidthPct / Math.max(1, laneCount);
+    const blockWidthPct = Math.min(
+      laneWidthPct * (isPortrait ? 0.8 : 0.72),
+      isPortrait ? 20 : 14
+    );
+    const playerSizePx = Math.max(shortSide * (isPortrait ? 0.1 : 0.07), 30);
+    const playerHalfPct = Math.max((playerSizePx / w) * 52, 4.2);
+
+    return {
+      isPortrait,
+      horizontalPaddingPct,
+      availableWidthPct,
+      laneWidthPct,
+      blockWidthPct,
+      playerSizePx,
+      playerHalfPct,
+      moveSpeedPct: isPortrait ? 1.15 : 1.0,
+      baseDropSpeedPct: isPortrait ? 0.24 : 0.22,
+      dropAccelerationPct: isPortrait ? 0.023 : 0.02,
+      blockCullY: 112 + (playerSizePx / h) * 100 * 0.9
+    };
+  };
+
+  const blockSizeClamp = (value: number, laneWidth: number) => {
+    const minWidth = Math.max(6.5, laneWidth * 0.5);
+    const maxWidth = laneWidth * 0.85;
+    return Math.max(minWidth, Math.min(maxWidth, value));
+  };
+
   const spawnQuestion = () => {
     const q = generateQuestion(scoreRef.current, difficultyRef.current, tuningRef.current);
     onQuestionUpdate(q.text);
 
+    const canvas = canvasRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas ? canvas.width / dpr : window.innerWidth;
+    const h = canvas ? canvas.height / dpr : window.innerHeight;
     const laneCount = q.options.length;
-    const availableWidth = 80; 
-    const startX = 10;
-    const laneWidth = availableWidth / laneCount;
+    const metrics = getViewportMetrics(w, h, laneCount);
+    const startX = metrics.horizontalPaddingPct;
+    const laneWidth = metrics.laneWidthPct;
 
     const newBlocks: BlockEntity[] = q.options.map((opt, index) => {
       const laneCenter = startX + (index * laneWidth) + (laneWidth / 2);
-      const randomOffset = (Math.random() * 4) - 2; 
+      const randomOffset = (Math.random() - 0.5) * laneWidth * 0.18;
       
       return {
         id: Math.random().toString(36).substr(2, 9),
         x: laneCenter + randomOffset,
         y: -20 - (Math.random() * 10), 
         value: opt,
-        width: 18, // Responsive width percentage (increased for mobile)
+        width: blockSizeClamp(metrics.blockWidthPct, laneWidth),
         height: 0, 
         isCorrect: opt === q.answer
       };
@@ -111,7 +149,12 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const rect = canvasRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const percentage = (x / rect.width) * 100;
-    playerRef.current.x = Math.max(8, Math.min(92, percentage));
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasRef.current.width / dpr;
+    const h = canvasRef.current.height / dpr;
+    const laneCount = Math.max(3, blocksRef.current.length || 3);
+    const metrics = getViewportMetrics(w, h, laneCount);
+    playerRef.current.x = Math.max(metrics.playerHalfPct, Math.min(100 - metrics.playerHalfPct, percentage));
   };
 
   useEffect(() => {
@@ -204,24 +247,28 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
 
-    const moveSpeed = 1.2 * timeScale;
-    if (isMovingLeft.current) playerRef.current.x = Math.max(8, playerRef.current.x - moveSpeed);
-    if (isMovingRight.current) playerRef.current.x = Math.min(92, playerRef.current.x + moveSpeed);
+    const laneCount = Math.max(3, blocksRef.current.length || 3);
+    const metrics = getViewportMetrics(w, h, laneCount);
+    const moveSpeed = metrics.moveSpeedPct * timeScale;
+    if (isMovingLeft.current) playerRef.current.x = Math.max(metrics.playerHalfPct, playerRef.current.x - moveSpeed);
+    if (isMovingRight.current) playerRef.current.x = Math.min(100 - metrics.playerHalfPct, playerRef.current.x + moveSpeed);
 
     let speedMultiplier = 1;
     if (difficultyRef.current === Difficulty.EASY) speedMultiplier = 0.65;
     if (difficultyRef.current === Difficulty.HARD) speedMultiplier = 1.4;
     if (difficultyRef.current === Difficulty.DEVIL) speedMultiplier = 1.9;
 
-    const baseDropSpeed = (0.25 + (scoreRef.current * 0.025)) * speedMultiplier * timeScale;
+    const baseDropSpeed =
+      (metrics.baseDropSpeedPct + (scoreRef.current * metrics.dropAccelerationPct)) *
+      speedMultiplier *
+      timeScale;
     
     let hitBlock: BlockEntity | null = null;
     const nextBlocks: BlockEntity[] = [];
 
     const px = (playerRef.current.x / 100) * w;
     const py = h * 0.88; 
-    const isPortrait = h > w;
-    const size = isPortrait ? w * 0.12 : Math.min(w, h) * 0.08; // Responsive size
+    const size = metrics.playerSizePx;
     const spacing = size * 0.55; 
     const headY = py - spacing;
     const legsY = py + spacing;
@@ -256,7 +303,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         }
       }
 
-      if (block.y < 120) {
+      if (block.y < metrics.blockCullY) {
         nextBlocks.push(block);
       }
     }
@@ -409,8 +456,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
     const px = (playerRef.current.x / 100) * w;
     const py = h * 0.88; 
-    const isPortrait = h > w;
-    const size = isPortrait ? w * 0.12 : Math.min(w, h) * 0.08; 
+    const laneCount = Math.max(3, blocksRef.current.length || 3);
+    const metrics = getViewportMetrics(w, h, laneCount);
+    const size = metrics.playerSizePx; 
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

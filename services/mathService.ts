@@ -65,7 +65,7 @@ export const generateQuestion = (
     optionCount = 5;
   } else if (difficultySetting === Difficulty.DEVIL) {
     baseDifficulty = Math.min(Math.floor(score / 2) + 6, 20);
-    optionCount = 6;
+    optionCount = 5;
   }
 
   const difficulty = baseDifficulty;
