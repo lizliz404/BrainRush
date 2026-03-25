@@ -39,6 +39,7 @@ const TRANSLATIONS = {
     accuracy: 'Accuracy',
     quickStart: '60s Quick Start',
     quickModeNote: 'Low-threshold mode: fixed Normal settings + unlimited lives.',
+    openAdvanced: 'Advanced',
     startGame: 'START GAME',
     customize: 'Customize Avatar',
     instruction: 'Use ← → arrows or Drag to move',
@@ -86,6 +87,7 @@ const TRANSLATIONS = {
     accuracy: '正确率',
     quickStart: '60 秒快速练习',
     quickModeNote: '低门槛模式：固定普通参数 + 无限命。',
+    openAdvanced: '高级调节',
     startGame: '开始游戏',
     customize: '自定义外观',
     instruction: '使用 ← → 方向键或拖拽来移动',
@@ -199,6 +201,11 @@ export default function App() {
   };
 
   const getToggleLabel = (enabled: boolean) => (enabled ? t.toggleOn : t.toggleOff);
+  const getLivesLabel = () => {
+    if (playMode === PlayMode.QUICK_60) return '∞';
+    if (lives <= 0) return '0';
+    return '❤'.repeat(lives);
+  };
 
   const presets = [
     {
@@ -356,7 +363,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans selection:bg-none">
+    <div className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans selection:bg-none pt-[calc(env(safe-area-inset-top)+4px)] pb-[calc(env(safe-area-inset-bottom)+4px)]">
       
       {/* Background Decor */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#1e1b4b] to-black opacity-80 z-0"></div>
@@ -403,38 +410,26 @@ export default function App() {
 
       {/* UI Overlay - HUD */}
       {gameState === GameState.PLAYING && (
-        <div className="absolute top-0 left-0 w-full p-4 z-20 pointer-events-none">
-          <div className="flex flex-col items-center gap-4">
+        <div className="absolute top-0 left-0 w-full px-3 py-2 z-20 pointer-events-none">
+          <div className="flex flex-col items-center gap-2">
 
             <div className="flex flex-wrap items-center justify-center gap-3">
               {/* Score Pill */}
-              <div className="bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-lg">
-                <span className="text-xl font-bold text-game-accent">{t.score}: {score}</span>
+              <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-lg">
+                <span className="text-lg md:text-xl font-bold text-game-accent">{t.score}: {score}</span>
               </div>
 
-              <div className="bg-black/40 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
-                <Heart size={18} className="text-rose-400 fill-current" />
-                <span className="text-base font-bold text-white">
-                  {t.lives}: {playMode === PlayMode.QUICK_60 ? '∞' : '❤'.repeat(lives)}
+              <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
+                <Heart size={16} className="text-rose-400 fill-current" />
+                <span className="text-sm md:text-base font-bold text-white">
+                  {t.lives}: {getLivesLabel()}
                 </span>
               </div>
             </div>
 
-            <div className="bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
-              <span className="text-sm font-bold text-slate-200">
-                {t.difficulty}: {DIFFICULTY_CONFIG[difficulty].label[lang]} · {t.lives}: {DIFFICULTY_CONFIG[difficulty].lives}
-              </span>
-            </div>
-
-            <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
-              <span className="text-xs font-semibold text-slate-200">
-                {t.operationFocus}: {getOperationLabel(tuning.operationFocus)} · {t.numberRange}: {getRangeLabel(tuning.numberRange)} · {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)} · {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
-              </span>
-            </div>
-
             {playMode === PlayMode.QUICK_60 && (
-              <div className="bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
-                <span className="text-sm font-bold text-amber-200">
+              <div className="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                <span className="text-xs md:text-sm font-bold text-amber-200">
                   {t.timer}: {timeLeftSec}s · {t.accuracy}: {accuracy}% ({correct}/{attempts})
                 </span>
               </div>
@@ -447,7 +442,7 @@ export default function App() {
               </h1>
             </div>
             
-            <p className="text-white/50 text-sm font-semibold tracking-wide uppercase mt-2 animate-pulse">
+            <p className="text-white/40 text-[11px] md:text-xs font-semibold tracking-wide uppercase mt-0.5 animate-pulse">
                {t.movePrompt}
             </p>
           </div>
@@ -481,9 +476,9 @@ export default function App() {
                   <button
                     key={diff}
                     onClick={() => setDifficulty(diff)}
-                    className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-lg transition-all ${
+                    className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-lg transition-all duration-200 ${
                       difficulty === diff 
-                        ? 'bg-white text-game-bg shadow-md' 
+                        ? 'bg-white text-game-bg shadow-md scale-[1.02]' 
                         : 'text-slate-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
@@ -491,40 +486,49 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-4 text-xs text-slate-400 leading-relaxed tracking-wide">
                 {lang === 'zh'
-                  ? `简单 4 条命 / 普通 3 条命 / 困难 2 条命 / 地狱 1 条命`
-                  : `Easy 4 lives / Normal 3 lives / Hard 2 lives / Devil 1 life`}
+                  ? `4 条命  /  3 条命  /  2 条命  /  1 条命`
+                  : `4 lives  /  3 lives  /  2 lives  /  1 life`}
               </p>
             </div>
 
             <div className="mb-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-sm font-bold text-white">{t.practiceTuning}</h3>
-                  <p className="mt-1 text-xs text-slate-400">{t.tuningDescription}</p>
-                </div>
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-sm font-bold text-white">{t.practiceTuning}</h3>
                 <button
                   onClick={() => setMenuView('tuning')}
-                  className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-colors hover:bg-white/20"
-                  aria-label={t.tuneQuestions}
+                  className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-all duration-200 hover:bg-white/20 active:scale-95"
+                  aria-label={t.openAdvanced}
                 >
                   <SlidersHorizontal size={18} />
                 </button>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-200">
-                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                <button
+                  onClick={() => setMenuView('tuning')}
+                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                >
                   {t.operationFocus}: {getOperationLabel(tuning.operationFocus)}
-                </span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                </button>
+                <button
+                  onClick={() => setMenuView('tuning')}
+                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                >
                   {t.numberRange}: {getRangeLabel(tuning.numberRange)}
-                </span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                </button>
+                <button
+                  onClick={() => setTuning(prev => ({ ...prev, allowRemainder: !prev.allowRemainder }))}
+                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                >
                   {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)}
-                </span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5">
+                </button>
+                <button
+                  onClick={() => setTuning(prev => ({ ...prev, allowNegative: !prev.allowNegative }))}
+                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                >
                   {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
-                </span>
+                </button>
               </div>
             </div>
 
@@ -542,11 +546,11 @@ export default function App() {
             >
               {t.quickStart}
             </button>
-            <p className="mb-4 text-xs text-amber-200/80">{t.quickModeNote}</p>
+            <div className="mb-4"></div>
 
             <button 
               onClick={() => setGameState(GameState.CUSTOMIZE)}
-              className="w-full bg-white/10 hover:bg-white/20 text-white font-bold text-base md:text-lg py-3 md:py-4 rounded-2xl transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-white/10 hover:bg-white/20 text-white font-black text-base md:text-lg py-3 md:py-4 rounded-2xl transition-all duration-200 shadow-[0_4px_0_0_rgba(148,163,184,0.35)] hover:translate-y-1 hover:shadow-none active:translate-y-1 active:shadow-none flex items-center justify-center gap-2"
             >
               <Shirt size={18} />
               {t.customize}

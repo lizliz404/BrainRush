@@ -140,6 +140,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       moveSpeedPct: isPortrait ? 1.15 : 1.0,
       baseDropSpeedPct: isPortrait ? 0.24 : 0.22,
       dropAccelerationPct: isPortrait ? 0.023 : 0.02,
+      playerYRatio: isPortrait ? 0.82 : 0.86,
       blockCullY: 112 + (playerSizePx / h) * 100 * 0.9
     };
   };
@@ -320,7 +321,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const nextBlocks: BlockEntity[] = [];
 
     const px = (playerRef.current.x / 100) * w;
-    const py = h * 0.88; 
+    const py = h * metrics.playerYRatio; 
     const size = metrics.playerSizePx;
     const spacing = size * 0.55; 
     const headY = py - spacing;
@@ -337,7 +338,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       const bx = (block.x / 100) * w;
       const by = (block.y / 100) * h;
       const bW = (block.width / 100) * w;
-      const bH = bW * 0.6; 
+      const bH = bW * 0.52; 
 
       const blockLeft = bx - bW / 2;
       const blockRight = bx + bW / 2;
@@ -367,7 +368,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       const bx = ((hitBlock as BlockEntity).x / 100) * w;
       const by = ((hitBlock as BlockEntity).y / 100) * h;
       const bW = ((hitBlock as BlockEntity).width / 100) * w;
-      const bH = bW * 0.6;
+      const bH = bW * 0.52;
       const blockBottom = by + bH;
 
       if ((hitBlock as BlockEntity).isCorrect) {
@@ -517,10 +518,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
       ctx.translate(dx, dy);
     }
 
-    const px = (playerRef.current.x / 100) * w;
-    const py = h * 0.88; 
     const laneCount = Math.max(3, blocksRef.current.length || 3);
     const metrics = getViewportMetrics(w, h, laneCount);
+    const px = (playerRef.current.x / 100) * w;
+    const py = h * metrics.playerYRatio; 
     const size = metrics.playerSizePx; 
 
     ctx.textAlign = 'center';
@@ -545,19 +546,19 @@ const GameEngine: React.FC<GameEngineProps> = ({
       const bx = (block.x / 100) * w;
       const by = (block.y / 100) * h;
       const bW = (block.width / 100) * w;
-      const bH = bW * 0.6; 
+      const bH = bW * 0.52; 
 
       ctx.fillStyle = 'white';
       ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(bx - bW/2, by, bW, bH, 8);
+        ctx.roundRect(bx - bW/2, by, bW, bH, Math.max(6, bW * 0.06));
       } else {
         ctx.rect(bx - bW/2, by, bW, bH);
       }
       ctx.fill();
 
       ctx.fillStyle = '#1e1b4b'; 
-      ctx.font = `bold ${Math.floor(bH * 0.55)}px "Fredoka", sans-serif`;
+      ctx.font = `bold ${Math.floor(bH * 0.52)}px "Fredoka", sans-serif`;
       ctx.fillText(block.value.toString(), bx, by + bH/2);
     });
 
