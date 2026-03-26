@@ -10,6 +10,11 @@ export enum PlayMode {
   QUICK_60 = 'QUICK_60'
 }
 
+export enum SubjectMode {
+  MATH = 'MATH',
+  WORD = 'WORD'
+}
+
 export enum Difficulty {
   EASY = 'EASY',
   NORMAL = 'NORMAL',
@@ -47,6 +52,18 @@ export interface Question {
   text: string;
   answer: string;
   options: string[]; // The values displayed on falling blocks
+}
+
+export interface VocabItem {
+  en: string;
+  zh: string;
+}
+
+export interface ClozeItem {
+  sentence: string;
+  answer: string;
+  zhHint: string;
+  distractors: string[];
 }
 
 export interface BlockEntity {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, Difficulty, AvatarConfig, GameTuning, NumberRangeMode, OperationFocus, PlayMode } from './types';
+import { GameState, Difficulty, AvatarConfig, GameTuning, NumberRangeMode, OperationFocus, PlayMode, SubjectMode } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal } from 'lucide-react';
-import { initAudio } from './services/audioService';
+import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages } from 'lucide-react';
+import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
 
@@ -12,7 +12,7 @@ const TRANSLATIONS = {
     subtitle: 'Solve fast. Move faster.',
     difficulty: 'Difficulty',
     practiceTuning: 'Practice Tuning',
-    tuningDescription: 'Decide what kinds of questions appear before you start.',
+    tuningDescription: 'Pick what to practice.',
     tuneQuestions: 'Tune Questions',
     backToMenu: 'Back',
     operationFocus: 'Operation Focus',
@@ -53,14 +53,17 @@ const TRANSLATIONS = {
     head: 'Head',
     body: 'Body',
     legs: 'Legs',
-    movePrompt: 'Move to the Correct Answer'
+    movePrompt: 'Move to the Correct Answer',
+    mathMode: 'Math Rush',
+    wordMode: 'Word Speedrun',
+    wordModeDescription: 'Word choice + simple sentence fill, two directions mixed.'
   },
   zh: {
     title: '头脑冲刺',
     subtitle: '算得快，躲得更快。',
     difficulty: '难度',
     practiceTuning: '练习调节',
-    tuningDescription: '开始前先决定这局更偏向哪类题目。',
+    tuningDescription: '开始前先选这局练什么。',
     tuneQuestions: '调节题目',
     backToMenu: '返回',
     operationFocus: '题型倾向',
@@ -101,7 +104,10 @@ const TRANSLATIONS = {
     head: '头部',
     body: '上衣',
     legs: '下装',
-    movePrompt: '移动到正确答案下方'
+    movePrompt: '移动到正确答案下方',
+    mathMode: '数学冲刺',
+    wordMode: '单词极速跑',
+    wordModeDescription: '单词中英互选 + 句子填空，方向随机。'
   }
 };
 
@@ -134,6 +140,7 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(DIFFICULTY_CONFIG[Difficulty.NORMAL].lives);
   const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.CLASSIC);
+  const [subjectMode, setSubjectMode] = useState<SubjectMode>(SubjectMode.MATH);
   const [attempts, setAttempts] = useState(0);
   const [correct, setCorrect] = useState(0);
   const [accuracy, setAccuracy] = useState(0);
@@ -263,6 +270,7 @@ export default function App() {
 
   const startGame = () => {
     initAudio();
+    stopMenuBgm();
     setPlayMode(PlayMode.CLASSIC);
     setScore(0);
     setLives(DIFFICULTY_CONFIG[difficulty].lives);
@@ -276,6 +284,7 @@ export default function App() {
 
   const startQuickPractice = () => {
     initAudio();
+    stopMenuBgm();
     setPlayMode(PlayMode.QUICK_60);
     setDifficulty(Difficulty.NORMAL);
     setTuning(DEFAULT_TUNING);
@@ -293,6 +302,22 @@ export default function App() {
     setGameState(GameState.GAME_OVER);
     setHighScore(prev => finalScore > prev ? finalScore : prev);
   };
+
+  useEffect(() => {
+    let bgmTimer: number | null = null;
+
+    if (gameState === GameState.MENU || gameState === GameState.GAME_OVER) {
+      bgmTimer = window.setTimeout(() => {
+        startMenuBgm();
+      }, 1000);
+    } else {
+      stopMenuBgm();
+    }
+
+    return () => {
+      if (bgmTimer !== null) window.clearTimeout(bgmTimer);
+    };
+  }, [gameState]);
 
   const renderCustomizeMenu = () => {
     const renderPartSelector = (part: keyof AvatarConfig, label: string) => (
@@ -392,6 +417,7 @@ export default function App() {
           gameState={gameState}
           difficulty={difficulty}
           playMode={playMode}
+          subjectMode={subjectMode}
           avatar={avatar}
           tuning={tuning}
           initialLives={DIFFICULTY_CONFIG[difficulty].lives}
@@ -414,11 +440,6 @@ export default function App() {
           <div className="flex flex-col items-center gap-2">
 
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {/* Score Pill */}
-              <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-lg">
-                <span className="text-lg md:text-xl font-bold text-game-accent">{t.score}: {score}</span>
-              </div>
-
               <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
                 <Heart size={16} className="text-rose-400 fill-current" />
                 <span className="text-sm md:text-base font-bold text-white">
@@ -430,7 +451,7 @@ export default function App() {
             {playMode === PlayMode.QUICK_60 && (
               <div className="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
                 <span className="text-xs md:text-sm font-bold text-amber-200">
-                  {t.timer}: {timeLeftSec}s · {t.accuracy}: {accuracy}% ({correct}/{attempts})
+                  {t.timer}: {timeLeftSec}s
                 </span>
               </div>
             )}
@@ -464,21 +485,41 @@ export default function App() {
             </div>
             
             <h1 className="text-4xl md:text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
-              {t.title}
+              {subjectMode === SubjectMode.WORD ? t.wordMode : t.title}
             </h1>
-            <p className="text-slate-300 text-base md:text-lg mb-8 font-medium">{t.subtitle}</p>
+            <p className="text-slate-300 text-base md:text-lg mb-4 font-medium">
+              {subjectMode === SubjectMode.WORD ? t.wordModeDescription : t.subtitle}
+            </p>
+
+            <div className="mb-6 flex justify-center">
+              <div className="bg-black/40 rounded-xl p-1 grid grid-cols-2 gap-1 w-full max-w-xs">
+                <button
+                  onClick={() => setSubjectMode(SubjectMode.MATH)}
+                  className={`rounded-lg py-2 text-sm font-bold transition-all duration-300 ${subjectMode === SubjectMode.MATH ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
+                >
+                  {t.mathMode}
+                </button>
+                <button
+                  onClick={() => setSubjectMode(SubjectMode.WORD)}
+                  className={`rounded-lg py-2 text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 ${subjectMode === SubjectMode.WORD ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
+                >
+                  <Languages size={14} />
+                  {t.wordMode}
+                </button>
+              </div>
+            </div>
 
             {/* Difficulty Selector */}
             <div className="mb-8">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{t.difficulty}</h3>
-              <div className="flex bg-black/40 rounded-xl p-1">
+              <div className="flex bg-black/40 rounded-xl p-1 gap-1">
                 {Object.values(Difficulty).map(diff => (
                   <button
                     key={diff}
                     onClick={() => setDifficulty(diff)}
-                    className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-lg transition-all duration-200 ${
+                    className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-lg transition-all duration-300 ease-out ${
                       difficulty === diff 
-                        ? 'bg-white text-game-bg shadow-md scale-[1.02]' 
+                        ? 'bg-white/95 text-game-bg shadow-md scale-[1.02]' 
                         : 'text-slate-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
@@ -486,51 +527,57 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <p className="mt-4 text-xs text-slate-400 leading-relaxed tracking-wide">
-                {lang === 'zh'
-                  ? `4 条命  /  3 条命  /  2 条命  /  1 条命`
-                  : `4 lives  /  3 lives  /  2 lives  /  1 life`}
-              </p>
+              <div className="mt-5 grid grid-cols-4 gap-1 text-center text-xs text-slate-400 leading-6 tracking-wide">
+                {Object.values(Difficulty).map(diff => (
+                  <span key={`hint-${diff}`}>
+                    {lang === 'zh'
+                      ? `${DIFFICULTY_CONFIG[diff].lives} 条命`
+                      : `${DIFFICULTY_CONFIG[diff].lives} ${DIFFICULTY_CONFIG[diff].lives > 1 ? 'lives' : 'life'}`}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            <div className="mb-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
-              <div className="flex items-center justify-between gap-4">
-                <h3 className="text-sm font-bold text-white">{t.practiceTuning}</h3>
-                <button
-                  onClick={() => setMenuView('tuning')}
-                  className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-all duration-200 hover:bg-white/20 active:scale-95"
-                  aria-label={t.openAdvanced}
-                >
-                  <SlidersHorizontal size={18} />
-                </button>
+            {subjectMode === SubjectMode.MATH && (
+              <div className="mb-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-sm font-bold text-white">{t.practiceTuning}</h3>
+                  <button
+                    onClick={() => setMenuView('tuning')}
+                    className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-all duration-200 hover:bg-white/20 active:scale-95"
+                    aria-label={t.openAdvanced}
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-200">
+                  <button
+                    onClick={() => setMenuView('tuning')}
+                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                  >
+                    {t.operationFocus}: {getOperationLabel(tuning.operationFocus)}
+                  </button>
+                  <button
+                    onClick={() => setMenuView('tuning')}
+                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                  >
+                    {t.numberRange}: {getRangeLabel(tuning.numberRange)}
+                  </button>
+                  <button
+                    onClick={() => setTuning(prev => ({ ...prev, allowRemainder: !prev.allowRemainder }))}
+                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                  >
+                    {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)}
+                  </button>
+                  <button
+                    onClick={() => setTuning(prev => ({ ...prev, allowNegative: !prev.allowNegative }))}
+                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                  >
+                    {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
+                  </button>
+                </div>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-200">
-                <button
-                  onClick={() => setMenuView('tuning')}
-                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                >
-                  {t.operationFocus}: {getOperationLabel(tuning.operationFocus)}
-                </button>
-                <button
-                  onClick={() => setMenuView('tuning')}
-                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                >
-                  {t.numberRange}: {getRangeLabel(tuning.numberRange)}
-                </button>
-                <button
-                  onClick={() => setTuning(prev => ({ ...prev, allowRemainder: !prev.allowRemainder }))}
-                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                >
-                  {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)}
-                </button>
-                <button
-                  onClick={() => setTuning(prev => ({ ...prev, allowNegative: !prev.allowNegative }))}
-                  className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                >
-                  {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
-                </button>
-              </div>
-            </div>
+            )}
 
             <button 
               onClick={startGame}
@@ -564,7 +611,7 @@ export default function App() {
               )}
             </div>
               </>
-            ) : (
+            ) : subjectMode === SubjectMode.MATH ? (
               <div className="text-left">
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <div>
@@ -573,7 +620,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setMenuView('main')}
-                    className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-white/20"
+                    className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 active:translate-y-0"
                   >
                     {t.backToMenu}
                   </button>
@@ -590,9 +637,9 @@ export default function App() {
                       <button
                         key={option.value}
                         onClick={() => setTuning(prev => ({ ...prev, operationFocus: option.value }))}
-                        className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                        className={`rounded-2xl border px-4 py-3 text-left transition-all duration-300 ease-out ${
                           tuning.operationFocus === option.value
-                            ? 'border-cyan-300 bg-cyan-400/15 text-white'
+                            ? 'border-cyan-300 bg-cyan-400/20 text-white shadow-[0_0_0_1px_rgba(34,211,238,0.25)]'
                             : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
@@ -614,9 +661,9 @@ export default function App() {
                       <button
                         key={option.value}
                         onClick={() => setTuning(prev => ({ ...prev, numberRange: option.value }))}
-                        className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                        className={`rounded-2xl border px-4 py-3 text-left transition-all duration-300 ease-out ${
                           tuning.numberRange === option.value
-                            ? 'border-indigo-300 bg-indigo-400/15 text-white'
+                            ? 'border-indigo-300 bg-indigo-400/20 text-white shadow-[0_0_0_1px_rgba(129,140,248,0.25)]'
                             : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
@@ -633,9 +680,9 @@ export default function App() {
                       <button
                         key={String(option)}
                         onClick={() => setTuning(prev => ({ ...prev, allowRemainder: option }))}
-                        className={`rounded-2xl border px-4 py-3 text-center transition-all ${
+                        className={`rounded-2xl border px-4 py-3 text-center transition-all duration-300 ease-out ${
                           tuning.allowRemainder === option
-                            ? 'border-emerald-300 bg-emerald-400/15 text-white'
+                            ? 'border-emerald-300 bg-emerald-400/20 text-white shadow-[0_0_0_1px_rgba(52,211,153,0.25)]'
                             : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
@@ -652,9 +699,9 @@ export default function App() {
                       <button
                         key={String(option)}
                         onClick={() => setTuning(prev => ({ ...prev, allowNegative: option }))}
-                        className={`rounded-2xl border px-4 py-3 text-center transition-all ${
+                        className={`rounded-2xl border px-4 py-3 text-center transition-all duration-300 ease-out ${
                           tuning.allowNegative === option
-                            ? 'border-rose-300 bg-rose-400/15 text-white'
+                            ? 'border-rose-300 bg-rose-400/20 text-white shadow-[0_0_0_1px_rgba(251,113,133,0.25)]'
                             : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
@@ -671,9 +718,9 @@ export default function App() {
                       <button
                         key={preset.key}
                         onClick={() => setTuning(preset.value)}
-                        className={`rounded-full border px-4 py-2 text-sm font-bold transition-all ${
+                        className={`rounded-full border px-4 py-2 text-sm font-bold transition-all duration-300 ease-out ${
                           isPresetActive(preset.value)
-                            ? 'border-white bg-white text-game-bg'
+                            ? 'border-white bg-white text-game-bg shadow-md'
                             : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
                         }`}
                       >
@@ -689,6 +736,12 @@ export default function App() {
                   <p className="mt-2">{t.allowRemainder}: <span className="font-bold text-white">{getToggleLabel(tuning.allowRemainder)}</span></p>
                   <p className="mt-2">{t.allowNegative}: <span className="font-bold text-white">{getToggleLabel(tuning.allowNegative)}</span></p>
                 </div>
+              </div>
+            ) : (
+              <div className="text-left rounded-2xl border border-white/10 bg-black/20 p-4 text-slate-300 text-sm leading-relaxed">
+                <h2 className="text-xl font-black text-white mb-2">{t.wordMode}</h2>
+                <p>{t.wordModeDescription}</p>
+                <p className="mt-2">{lang === 'zh' ? '当前版本会随机出现：英文选中文 / 中文选英文 / 句子填空。' : 'Current version randomizes: EN→ZH / ZH→EN / sentence cloze.'}</p>
               </div>
             )}
           </div>

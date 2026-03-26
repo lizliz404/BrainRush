@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, PlayMode } from '../types';
+import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, PlayMode, SubjectMode } from '../types';
 import { generateQuestion } from '../services/mathService';
+import { generateWordQuestion } from '../services/wordService';
 import { playSuccessSound, playErrorSound } from '../services/audioService';
 
 interface EffectEntity {
@@ -20,6 +21,7 @@ interface GameEngineProps {
   gameState: GameState;
   difficulty: Difficulty;
   playMode: PlayMode;
+  subjectMode: SubjectMode;
   avatar: AvatarConfig;
   tuning: GameTuning;
   initialLives: number;
@@ -34,6 +36,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   gameState, 
   difficulty,
   playMode,
+  subjectMode,
   avatar,
   tuning,
   initialLives,
@@ -51,6 +54,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const difficultyRef = useRef(difficulty);
   const playModeRef = useRef(playMode);
   const tuningRef = useRef(tuning);
+  const subjectModeRef = useRef(subjectMode);
   const onScoreUpdateRef = useRef(onScoreUpdate);
   const onLivesUpdateRef = useRef(onLivesUpdate);
   const onStatsUpdateRef = useRef(onStatsUpdate);
@@ -91,6 +95,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     tuningRef.current = tuning;
   }, [tuning]);
+
+  useEffect(() => {
+    subjectModeRef.current = subjectMode;
+  }, [subjectMode]);
 
   useEffect(() => {
     onScoreUpdateRef.current = onScoreUpdate;
@@ -152,7 +160,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
   };
 
   const spawnQuestion = () => {
-    const q = generateQuestion(scoreRef.current, difficultyRef.current, tuningRef.current);
+    const q = subjectModeRef.current === SubjectMode.WORD
+      ? generateWordQuestion(difficultyRef.current)
+      : generateQuestion(scoreRef.current, difficultyRef.current, tuningRef.current);
     onQuestionUpdateRef.current(q.text);
 
     const canvas = canvasRef.current;
