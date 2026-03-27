@@ -475,9 +475,26 @@ export default function App() {
       {/* Main Menu */}
       {gameState === GameState.MENU && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="relative w-full max-w-md bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {menuView === 'main' ? (
               <>
+            <div className="absolute left-4 top-4 z-20">
+              <div className="bg-black/50 border border-white/10 rounded-xl p-1 flex items-center gap-1 shadow-lg">
+                <button
+                  onClick={() => setSubjectMode(SubjectMode.MATH)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${subjectMode === SubjectMode.MATH ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
+                >
+                  {lang === 'zh' ? '数学' : 'Math'}
+                </button>
+                <button
+                  onClick={() => setSubjectMode(SubjectMode.WORD)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${subjectMode === SubjectMode.WORD ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
+                >
+                  <Languages size={12} />
+                  {lang === 'zh' ? '单词' : 'Word'}
+                </button>
+              </div>
+            </div>
             <div className="flex justify-center mb-6">
               <div className="p-4 bg-game-accent rounded-2xl shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)]">
                 <BrainCircuit size={48} className="text-white md:w-16 md:h-16" />
@@ -490,24 +507,6 @@ export default function App() {
             <p className="text-slate-300 text-base md:text-lg mb-4 font-medium">
               {subjectMode === SubjectMode.WORD ? t.wordModeDescription : t.subtitle}
             </p>
-
-            <div className="mb-6 flex justify-center">
-              <div className="bg-black/40 rounded-xl p-1 grid grid-cols-2 gap-1 w-full max-w-xs">
-                <button
-                  onClick={() => setSubjectMode(SubjectMode.MATH)}
-                  className={`rounded-lg py-2 text-sm font-bold transition-all duration-300 ${subjectMode === SubjectMode.MATH ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
-                >
-                  {t.mathMode}
-                </button>
-                <button
-                  onClick={() => setSubjectMode(SubjectMode.WORD)}
-                  className={`rounded-lg py-2 text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 ${subjectMode === SubjectMode.WORD ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
-                >
-                  <Languages size={14} />
-                  {t.wordMode}
-                </button>
-              </div>
-            </div>
 
             {/* Difficulty Selector */}
             <div className="mb-8">
