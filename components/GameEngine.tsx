@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, PlayMode, SubjectMode } from '../types';
+import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, MistakeRecord, PlayMode, Question, SubjectMode, WordTuning } from '../types';
 import { generateQuestion } from '../services/mathService';
-import { generateWordQuestion } from '../services/wordService';
+import { generateWordQuestionWithTuning } from '../services/wordService';
 import { playSuccessSound, playErrorSound } from '../services/audioService';
 
 interface EffectEntity {
@@ -24,12 +24,14 @@ interface GameEngineProps {
   subjectMode: SubjectMode;
   avatar: AvatarConfig;
   tuning: GameTuning;
+  wordTuning: WordTuning;
   initialLives: number;
   onScoreUpdate: (score: number) => void;
   onLivesUpdate: (lives: number) => void;
   onStatsUpdate: (stats: { correct: number; attempts: number; accuracy: number; timeLeftSec: number }) => void;
   onGameOver: (finalScore: number) => void;
   onQuestionUpdate: (q: string) => void;
+  onQuestionMistake: (mistake: MistakeRecord) => void;
 }
 
 const GameEngine: React.FC<GameEngineProps> = ({ 
@@ -39,12 +41,14 @@ const GameEngine: React.FC<GameEngineProps> = ({
   subjectMode,
   avatar,
   tuning,
+  wordTuning,
   initialLives,
   onScoreUpdate, 
   onLivesUpdate,
   onStatsUpdate,
   onGameOver,
-  onQuestionUpdate
+  onQuestionUpdate,
+  onQuestionMistake
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
@@ -55,16 +59,19 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const playModeRef = useRef(playMode);
   const tuningRef = useRef(tuning);
   const subjectModeRef = useRef(subjectMode);
+  const wordTuningRef = useRef(wordTuning);
   const onScoreUpdateRef = useRef(onScoreUpdate);
   const onLivesUpdateRef = useRef(onLivesUpdate);
   const onStatsUpdateRef = useRef(onStatsUpdate);
   const onGameOverRef = useRef(onGameOver);
   const onQuestionUpdateRef = useRef(onQuestionUpdate);
+  const onQuestionMistakeRef = useRef(onQuestionMistake);
   const scoreRef = useRef(0);
   const livesRef = useRef(initialLives);
   const attemptsRef = useRef(0);
   const correctRef = useRef(0);
   const timeLeftMsRef = useRef(60000);
+  const currentQuestionRef = useRef<Question | null>(null);
   
   const playerRef = useRef<PlayerEntity>({ x: 50, width: 8 });
   const blocksRef = useRef<BlockEntity[]>([]);
@@ -101,6 +108,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   }, [subjectMode]);
 
   useEffect(() => {
+    wordTuningRef.current = wordTuning;
+  }, [wordTuning]);
+
+  useEffect(() => {
     onScoreUpdateRef.current = onScoreUpdate;
   }, [onScoreUpdate]);
 
@@ -119,6 +130,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     onQuestionUpdateRef.current = onQuestionUpdate;
   }, [onQuestionUpdate]);
+
+  useEffect(() => {
+    onQuestionMistakeRef.current = onQuestionMistake;
+  }, [onQuestionMistake]);
 
   useEffect(() => {
     livesRef.current = initialLives;
@@ -161,8 +176,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
   const spawnQuestion = () => {
     const q = subjectModeRef.current === SubjectMode.WORD
-      ? generateWordQuestion(difficultyRef.current)
+      ? generateWordQuestionWithTuning(difficultyRef.current, wordTuningRef.current)
       : generateQuestion(scoreRef.current, difficultyRef.current, tuningRef.current);
+    currentQuestionRef.current = q;
     onQuestionUpdateRef.current(q.text);
 
     const canvas = canvasRef.current;
@@ -203,6 +219,20 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const laneCount = Math.max(3, blocksRef.current.length || 3);
     const metrics = getViewportMetrics(w, h, laneCount);
     playerRef.current.x = Math.max(metrics.playerHalfPct, Math.min(100 - metrics.playerHalfPct, percentage));
+  };
+
+  const recordMistake = (selectedAnswer: string | null) => {
+    const currentQuestion = currentQuestionRef.current;
+    if (!currentQuestion) return;
+
+    onQuestionMistakeRef.current({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      subjectMode: subjectModeRef.current,
+      questionText: currentQuestion.text,
+      correctAnswer: currentQuestion.answer,
+      selectedAnswer,
+      timestamp: new Date().toISOString(),
+    });
   };
 
   useEffect(() => {
@@ -321,6 +351,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
     if (difficultyRef.current === Difficulty.EASY) speedMultiplier = 0.65;
     if (difficultyRef.current === Difficulty.HARD) speedMultiplier = 1.4;
     if (difficultyRef.current === Difficulty.DEVIL) speedMultiplier = 1.9;
+    if (playModeRef.current === PlayMode.QUICK_60) {
+      speedMultiplier = Math.max(speedMultiplier, 1.4);
+    }
 
     const baseDropSpeed =
       (metrics.baseDropSpeedPct + (scoreRef.current * metrics.dropAccelerationPct)) *
@@ -420,6 +453,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         spawnQuestion();
       } else {
         attemptsRef.current += 1;
+        recordMistake(hitBlock.value);
         playErrorSound();
         shakeRef.current = 500; 
 
@@ -474,6 +508,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
     
     if (blocksRef.current.length === 0) {
        attemptsRef.current += 1;
+       recordMistake(null);
        playErrorSound();
        shakeRef.current = 400;
 
@@ -552,6 +587,18 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
     ctx.shadowBlur = 0;
 
+    const fitTextSize = (text: string, maxWidth: number, maxFontSize: number, minFontSize: number) => {
+      let fontSize = maxFontSize;
+      while (fontSize > minFontSize) {
+        ctx.font = `bold ${Math.floor(fontSize)}px "Fredoka", sans-serif`;
+        if (ctx.measureText(text).width <= maxWidth) {
+          return fontSize;
+        }
+        fontSize -= 1;
+      }
+      return minFontSize;
+    };
+
     blocksRef.current.forEach(block => {
       const bx = (block.x / 100) * w;
       const by = (block.y / 100) * h;
@@ -568,7 +615,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
       ctx.fill();
 
       ctx.fillStyle = '#1e1b4b'; 
-      ctx.font = `bold ${Math.floor(bH * 0.52)}px "Fredoka", sans-serif`;
+      const text = block.value.toString();
+      const fontSize = fitTextSize(text, bW * 0.78, bH * 0.42, Math.max(12, bH * 0.2));
+      ctx.font = `bold ${Math.floor(fontSize)}px "Fredoka", sans-serif`;
       ctx.fillText(block.value.toString(), bx, by + bH/2);
     });
 
@@ -631,6 +680,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       playerRef.current = { x: 50, width: 8 };
       blocksRef.current = [];
       effectsRef.current = [];
+      currentQuestionRef.current = null;
       shakeRef.current = 0;
       previousTimeRef.current = 0;
       isDeadRef.current = false;

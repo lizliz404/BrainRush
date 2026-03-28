@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { GameState, Difficulty, AvatarConfig, GameTuning, NumberRangeMode, OperationFocus, PlayMode, SubjectMode } from './types';
+import React, { useState, useEffect, useRef } from 'react';
+import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
 import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages } from 'lucide-react';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
@@ -12,6 +12,7 @@ const TRANSLATIONS = {
     subtitle: 'Solve fast. Move faster.',
     difficulty: 'Difficulty',
     practiceTuning: 'Practice Tuning',
+    wordPracticeTuning: 'Word Tuning',
     tuningDescription: 'Pick what to practice.',
     tuneQuestions: 'Tune Questions',
     backToMenu: 'Back',
@@ -26,6 +27,11 @@ const TRANSLATIONS = {
     rangeAbove50: '50 and above',
     allowRemainder: 'Allow Remainder',
     allowNegative: 'Allow Negative',
+    allowCloze: 'Sentence Cloze',
+    wordDirection: 'Direction',
+    directionMixed: 'Mixed',
+    directionEnToZh: 'EN -> ZH',
+    directionZhToEn: 'ZH -> EN',
     toggleOn: 'On',
     toggleOff: 'Off',
     presets: 'Quick Presets',
@@ -37,8 +43,8 @@ const TRANSLATIONS = {
     lives: 'Lives',
     timer: 'Timer',
     accuracy: 'Accuracy',
-    quickStart: '60s Quick Start',
-    quickModeNote: 'Low-threshold mode: fixed Normal settings + unlimited lives.',
+    quickStart: '60s Timed Mode',
+    quickModeNote: 'Timed mode for the current subject: Normal questions + unlimited lives + Hard-speed drops.',
     openAdvanced: 'Advanced',
     startGame: 'START GAME',
     customize: 'Customize Avatar',
@@ -56,13 +62,21 @@ const TRANSLATIONS = {
     movePrompt: 'Move to the Correct Answer',
     mathMode: 'Math Rush',
     wordMode: 'Word Speedrun',
-    wordModeDescription: 'Word choice + simple sentence fill, two directions mixed.'
+    wordModeDescription: 'Word choice + simple sentence fill, two directions mixed.',
+    localTimedBoard: 'Local Timed Board',
+    recentMistakes: 'Wrong Answer Book',
+    noMistakes: 'No mistakes saved yet.',
+    yourAnswer: 'Your answer',
+    correctAnswer: 'Correct answer',
+    missedAnswer: 'Missed',
+    timedBoardEmpty: 'No 60s runs saved yet.',
   },
   zh: {
     title: '头脑冲刺',
     subtitle: '算得快，躲得更快。',
     difficulty: '难度',
     practiceTuning: '练习调节',
+    wordPracticeTuning: '单词调节',
     tuningDescription: '开始前先选这局练什么。',
     tuneQuestions: '调节题目',
     backToMenu: '返回',
@@ -77,6 +91,11 @@ const TRANSLATIONS = {
     rangeAbove50: '五十以上',
     allowRemainder: '允许余数',
     allowNegative: '允许负数',
+    allowCloze: '句子填空',
+    wordDirection: '方向',
+    directionMixed: '双向混合',
+    directionEnToZh: '英译中',
+    directionZhToEn: '中译英',
     toggleOn: '开启',
     toggleOff: '关闭',
     presets: '快捷模板',
@@ -88,8 +107,8 @@ const TRANSLATIONS = {
     lives: '血量',
     timer: '倒计时',
     accuracy: '正确率',
-    quickStart: '60 秒快速练习',
-    quickModeNote: '低门槛模式：固定普通参数 + 无限命。',
+    quickStart: '60 秒计时模式',
+    quickModeNote: '当前学科的计时模式：普通题目 + 无限命 + 困难档下落速度。',
     openAdvanced: '高级调节',
     startGame: '开始游戏',
     customize: '自定义外观',
@@ -107,7 +126,14 @@ const TRANSLATIONS = {
     movePrompt: '移动到正确答案下方',
     mathMode: '数学冲刺',
     wordMode: '单词极速跑',
-    wordModeDescription: '单词中英互选 + 句子填空，方向随机。'
+    wordModeDescription: '单词中英互选 + 句子填空，方向随机。',
+    localTimedBoard: '本地 60 秒榜',
+    recentMistakes: '错题本',
+    noMistakes: '还没有保存的错题。',
+    yourAnswer: '你的答案',
+    correctAnswer: '正确答案',
+    missedAnswer: '漏题',
+    timedBoardEmpty: '还没有保存的 60 秒成绩。',
   }
 };
 
@@ -134,6 +160,70 @@ const DEFAULT_TUNING: GameTuning = {
   allowNegative: false,
 };
 
+const DEFAULT_WORD_TUNING: WordTuning = {
+  allowCloze: true,
+  directionMode: WordDirectionMode.MIXED,
+};
+
+const HIGH_SCORE_STORAGE_KEYS: Record<SubjectMode, string> = {
+  [SubjectMode.MATH]: 'brainRushHighScore_MATH',
+  [SubjectMode.WORD]: 'brainRushHighScore_WORD',
+};
+
+const MISTAKE_STORAGE_KEYS: Record<SubjectMode, string> = {
+  [SubjectMode.MATH]: 'brainRushMistakes_MATH',
+  [SubjectMode.WORD]: 'brainRushMistakes_WORD',
+};
+
+const TIMED_RUN_STORAGE_KEYS: Record<SubjectMode, string> = {
+  [SubjectMode.MATH]: 'brainRushTimedRuns_MATH',
+  [SubjectMode.WORD]: 'brainRushTimedRuns_WORD',
+};
+
+const LEGACY_HIGH_SCORE_KEY = 'brainRushHighScore';
+const WORD_TUNING_STORAGE_KEY = 'brainRushWordTuning';
+
+const readStoredScore = (key: string): number | null => {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const loadHighScores = (): Record<SubjectMode, number> => {
+  const legacyHighScore = readStoredScore(LEGACY_HIGH_SCORE_KEY) ?? 0;
+
+  return {
+    [SubjectMode.MATH]: readStoredScore(HIGH_SCORE_STORAGE_KEYS[SubjectMode.MATH]) ?? legacyHighScore,
+    [SubjectMode.WORD]: readStoredScore(HIGH_SCORE_STORAGE_KEYS[SubjectMode.WORD]) ?? 0,
+  };
+};
+
+const loadStoredJson = <T extends object,>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const loadStoredList = <T,>(key: string): T[] => {
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const loadRecordsBySubject = <T,>(keys: Record<SubjectMode, string>): Record<SubjectMode, T[]> => ({
+  [SubjectMode.MATH]: loadStoredList<T>(keys[SubjectMode.MATH]),
+  [SubjectMode.WORD]: loadStoredList<T>(keys[SubjectMode.WORD]),
+});
+
 export default function App() {
   const [menuView, setMenuView] = useState<'main' | 'tuning'>('main');
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -151,10 +241,7 @@ export default function App() {
   const t = TRANSLATIONS[lang];
 
   // Load saved data
-  const [highScore, setHighScore] = useState(() => {
-    const saved = localStorage.getItem('brainRushHighScore');
-    return saved ? parseInt(saved, 10) : 0;
-  });
+  const [highScores, setHighScores] = useState<Record<SubjectMode, number>>(() => loadHighScores());
   
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
   
@@ -167,11 +254,23 @@ export default function App() {
     const saved = localStorage.getItem('brainRushTuning');
     return saved ? { ...DEFAULT_TUNING, ...JSON.parse(saved) } : DEFAULT_TUNING;
   });
+  const [wordTuning, setWordTuning] = useState<WordTuning>(() => loadStoredJson(WORD_TUNING_STORAGE_KEY, DEFAULT_WORD_TUNING));
+  const [mistakeBook, setMistakeBook] = useState<Record<SubjectMode, MistakeRecord[]>>(() => loadRecordsBySubject<MistakeRecord>(MISTAKE_STORAGE_KEYS));
+  const [timedRunHistory, setTimedRunHistory] = useState<Record<SubjectMode, TimedRunRecord[]>>(() => loadRecordsBySubject<TimedRunRecord>(TIMED_RUN_STORAGE_KEYS));
+  const [sessionMistakes, setSessionMistakes] = useState<MistakeRecord[]>([]);
+  const sessionMistakesRef = useRef<MistakeRecord[]>([]);
+  const latestStatsRef = useRef({ correct: 0, attempts: 0, accuracy: 0 });
+
+  const currentHighScore = highScores[subjectMode];
+  const overallHighScore = Math.max(...Object.values(highScores));
+  const currentMistakes = mistakeBook[subjectMode];
+  const currentTimedRuns = timedRunHistory[subjectMode];
 
   // Save when changed
   useEffect(() => {
-    localStorage.setItem('brainRushHighScore', highScore.toString());
-  }, [highScore]);
+    localStorage.setItem(HIGH_SCORE_STORAGE_KEYS[SubjectMode.MATH], highScores[SubjectMode.MATH].toString());
+    localStorage.setItem(HIGH_SCORE_STORAGE_KEYS[SubjectMode.WORD], highScores[SubjectMode.WORD].toString());
+  }, [highScores]);
 
   useEffect(() => {
     localStorage.setItem('brainRushAvatar', JSON.stringify(avatar));
@@ -180,6 +279,20 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('brainRushTuning', JSON.stringify(tuning));
   }, [tuning]);
+
+  useEffect(() => {
+    localStorage.setItem(WORD_TUNING_STORAGE_KEY, JSON.stringify(wordTuning));
+  }, [wordTuning]);
+
+  useEffect(() => {
+    localStorage.setItem(MISTAKE_STORAGE_KEYS[SubjectMode.MATH], JSON.stringify(mistakeBook[SubjectMode.MATH]));
+    localStorage.setItem(MISTAKE_STORAGE_KEYS[SubjectMode.WORD], JSON.stringify(mistakeBook[SubjectMode.WORD]));
+  }, [mistakeBook]);
+
+  useEffect(() => {
+    localStorage.setItem(TIMED_RUN_STORAGE_KEYS[SubjectMode.MATH], JSON.stringify(timedRunHistory[SubjectMode.MATH]));
+    localStorage.setItem(TIMED_RUN_STORAGE_KEYS[SubjectMode.WORD], JSON.stringify(timedRunHistory[SubjectMode.WORD]));
+  }, [timedRunHistory]);
 
   const getOperationLabel = (focus: OperationFocus) => {
     switch (focus) {
@@ -208,6 +321,26 @@ export default function App() {
   };
 
   const getToggleLabel = (enabled: boolean) => (enabled ? t.toggleOn : t.toggleOff);
+  const getWordDirectionLabel = (direction: WordDirectionMode) => {
+    switch (direction) {
+      case WordDirectionMode.EN_TO_ZH:
+        return t.directionEnToZh;
+      case WordDirectionMode.ZH_TO_EN:
+        return t.directionZhToEn;
+      case WordDirectionMode.MIXED:
+      default:
+        return t.directionMixed;
+    }
+  };
+
+  const getQuestionTextClass = () => {
+    const length = currentQuestion.length;
+    if (subjectMode === SubjectMode.WORD && length > 36) return 'text-xl md:text-3xl leading-snug';
+    if (subjectMode === SubjectMode.WORD && length > 18) return 'text-2xl md:text-4xl leading-tight';
+    if (length > 20) return 'text-3xl md:text-4xl leading-tight';
+    return 'text-4xl md:text-5xl leading-none';
+  };
+
   const getLivesLabel = () => {
     if (playMode === PlayMode.QUICK_60) return '∞';
     if (lives <= 0) return '0';
@@ -268,6 +401,17 @@ export default function App() {
     presetValue.allowRemainder === tuning.allowRemainder &&
     presetValue.allowNegative === tuning.allowNegative;
 
+  const resetSessionMistakes = () => {
+    sessionMistakesRef.current = [];
+    setSessionMistakes([]);
+  };
+
+  const handleQuestionMistake = (mistake: MistakeRecord) => {
+    const nextMistakes = [...sessionMistakesRef.current, mistake];
+    sessionMistakesRef.current = nextMistakes;
+    setSessionMistakes(nextMistakes);
+  };
+
   const startGame = () => {
     initAudio();
     stopMenuBgm();
@@ -277,8 +421,10 @@ export default function App() {
     setAttempts(0);
     setCorrect(0);
     setAccuracy(0);
+    latestStatsRef.current = { correct: 0, attempts: 0, accuracy: 0 };
     setTimeLeftSec(60);
     setMenuView('main');
+    resetSessionMistakes();
     setGameState(GameState.PLAYING);
   };
 
@@ -293,14 +439,46 @@ export default function App() {
     setAttempts(0);
     setCorrect(0);
     setAccuracy(0);
+    latestStatsRef.current = { correct: 0, attempts: 0, accuracy: 0 };
     setTimeLeftSec(60);
     setMenuView('main');
+    resetSessionMistakes();
     setGameState(GameState.PLAYING);
   };
 
   const handleGameOver = (finalScore: number) => {
     setGameState(GameState.GAME_OVER);
-    setHighScore(prev => finalScore > prev ? finalScore : prev);
+    setHighScores(prev => ({
+      ...prev,
+      [subjectMode]: finalScore > prev[subjectMode] ? finalScore : prev[subjectMode],
+    }));
+
+    if (sessionMistakesRef.current.length > 0) {
+      setMistakeBook(prev => ({
+        ...prev,
+        [subjectMode]: [...sessionMistakesRef.current, ...prev[subjectMode]].slice(0, 30),
+      }));
+    }
+
+    if (playMode === PlayMode.QUICK_60) {
+      const latestStats = latestStatsRef.current;
+      const run: TimedRunRecord = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        subjectMode,
+        score: finalScore,
+        accuracy: latestStats.accuracy,
+        correct: latestStats.correct,
+        attempts: latestStats.attempts,
+        timestamp: new Date().toISOString(),
+      };
+
+      setTimedRunHistory(prev => ({
+        ...prev,
+        [subjectMode]: [...prev[subjectMode], run]
+          .sort((a, b) => b.score - a.score || b.accuracy - a.accuracy || b.timestamp.localeCompare(a.timestamp))
+          .slice(0, 8),
+      }));
+    }
   };
 
   useEffect(() => {
@@ -325,7 +503,7 @@ export default function App() {
         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{label}</h3>
         <div className="flex gap-3 overflow-x-auto pb-2 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {UNLOCKABLE_SETS.map((set, idx) => {
-            const isUnlocked = highScore >= set.score;
+            const isUnlocked = overallHighScore >= set.score;
             const isSelected = avatar[part] === set[part];
             return (
               <button
@@ -372,7 +550,7 @@ export default function App() {
               <div>{avatar.legs}</div>
             </div>
             <div className="bg-white/10 px-6 py-2 rounded-full text-sm font-bold text-slate-300">
-              {t.best}: {highScore}
+              {t.best}: {overallHighScore}
             </div>
           </div>
 
@@ -386,6 +564,49 @@ export default function App() {
       </div>
     );
   };
+
+  const renderMistakeList = (mistakes: MistakeRecord[]) => (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
+      <h3 className="text-sm font-bold text-white">{t.recentMistakes}</h3>
+      {mistakes.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-400">{t.noMistakes}</p>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {mistakes.slice(0, 5).map(mistake => (
+            <div key={mistake.id} className="rounded-xl bg-white/5 p-3 text-sm text-slate-300">
+              <div className="font-bold text-white break-words">{mistake.questionText}</div>
+              <div className="mt-2">
+                {t.yourAnswer}: <span className="font-semibold text-amber-200 break-all">{mistake.selectedAnswer ?? t.missedAnswer}</span>
+              </div>
+              <div className="mt-1">
+                {t.correctAnswer}: <span className="font-semibold text-emerald-300 break-all">{mistake.correctAnswer}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderTimedBoard = () => (
+    <div className="rounded-2xl border border-white/10 bg-slate-100 p-4 md:p-6 mt-4 text-left">
+      <h3 className="text-sm font-bold text-game-bg">{t.localTimedBoard}</h3>
+      {currentTimedRuns.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">{t.timedBoardEmpty}</p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {currentTimedRuns.slice(0, 5).map((run, index) => (
+            <div key={run.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
+              <div className="font-bold text-slate-500">#{index + 1}</div>
+              <div className="text-game-bg font-black">{run.score}</div>
+              <div className="text-emerald-600 font-semibold">{run.accuracy}%</div>
+              <div className="text-slate-500">{run.correct}/{run.attempts}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans selection:bg-none pt-[calc(env(safe-area-inset-top)+4px)] pb-[calc(env(safe-area-inset-bottom)+4px)]">
@@ -420,10 +641,16 @@ export default function App() {
           subjectMode={subjectMode}
           avatar={avatar}
           tuning={tuning}
+          wordTuning={wordTuning}
           initialLives={DIFFICULTY_CONFIG[difficulty].lives}
           onScoreUpdate={setScore}
           onLivesUpdate={setLives}
           onStatsUpdate={({ correct: nextCorrect, attempts: nextAttempts, accuracy: nextAccuracy, timeLeftSec: nextTimeLeft }) => {
+            latestStatsRef.current = {
+              correct: nextCorrect,
+              attempts: nextAttempts,
+              accuracy: nextAccuracy,
+            };
             setCorrect(nextCorrect);
             setAttempts(nextAttempts);
             setAccuracy(nextAccuracy);
@@ -431,6 +658,7 @@ export default function App() {
           }}
           onGameOver={handleGameOver}
           onQuestionUpdate={setCurrentQuestion}
+          onQuestionMistake={handleQuestionMistake}
         />
       </div>
 
@@ -457,8 +685,8 @@ export default function App() {
             )}
 
             {/* Question Card */}
-            <div className="bg-white/95 text-game-bg px-8 py-4 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transform transition-all animate-in fade-in slide-in-from-top-4 duration-300">
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight text-center whitespace-nowrap">
+            <div className="max-w-[min(92vw,44rem)] bg-white/95 text-game-bg px-6 py-4 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transform transition-all animate-in fade-in slide-in-from-top-4 duration-300">
+              <h1 className={`${getQuestionTextClass()} font-black tracking-tight text-center break-words`}>
                 {currentQuestion}
               </h1>
             </div>
@@ -537,46 +765,65 @@ export default function App() {
               </div>
             </div>
 
-            {subjectMode === SubjectMode.MATH && (
-              <div className="mb-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
-                <div className="flex items-center justify-between gap-4">
-                  <h3 className="text-sm font-bold text-white">{t.practiceTuning}</h3>
-                  <button
-                    onClick={() => setMenuView('tuning')}
-                    className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-all duration-200 hover:bg-white/20 active:scale-95"
-                    aria-label={t.openAdvanced}
-                  >
-                    <SlidersHorizontal size={18} />
-                  </button>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-200">
-                  <button
-                    onClick={() => setMenuView('tuning')}
-                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                  >
-                    {t.operationFocus}: {getOperationLabel(tuning.operationFocus)}
-                  </button>
-                  <button
-                    onClick={() => setMenuView('tuning')}
-                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                  >
-                    {t.numberRange}: {getRangeLabel(tuning.numberRange)}
-                  </button>
-                  <button
-                    onClick={() => setTuning(prev => ({ ...prev, allowRemainder: !prev.allowRemainder }))}
-                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                  >
-                    {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)}
-                  </button>
-                  <button
-                    onClick={() => setTuning(prev => ({ ...prev, allowNegative: !prev.allowNegative }))}
-                    className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                  >
-                    {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
-                  </button>
-                </div>
+            <div className="mb-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-sm font-bold text-white">
+                  {subjectMode === SubjectMode.MATH ? t.practiceTuning : t.wordPracticeTuning}
+                </h3>
+                <button
+                  onClick={() => setMenuView('tuning')}
+                  className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-all duration-200 hover:bg-white/20 active:scale-95"
+                  aria-label={t.openAdvanced}
+                >
+                  <SlidersHorizontal size={18} />
+                </button>
               </div>
-            )}
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-200">
+                {subjectMode === SubjectMode.MATH ? (
+                  <>
+                    <button
+                      onClick={() => setMenuView('tuning')}
+                      className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                    >
+                      {t.operationFocus}: {getOperationLabel(tuning.operationFocus)}
+                    </button>
+                    <button
+                      onClick={() => setMenuView('tuning')}
+                      className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                    >
+                      {t.numberRange}: {getRangeLabel(tuning.numberRange)}
+                    </button>
+                    <button
+                      onClick={() => setTuning(prev => ({ ...prev, allowRemainder: !prev.allowRemainder }))}
+                      className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                    >
+                      {t.allowRemainder}: {getToggleLabel(tuning.allowRemainder)}
+                    </button>
+                    <button
+                      onClick={() => setTuning(prev => ({ ...prev, allowNegative: !prev.allowNegative }))}
+                      className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                    >
+                      {t.allowNegative}: {getToggleLabel(tuning.allowNegative)}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setMenuView('tuning')}
+                      className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                    >
+                      {t.wordDirection}: {getWordDirectionLabel(wordTuning.directionMode)}
+                    </button>
+                    <button
+                      onClick={() => setWordTuning(prev => ({ ...prev, allowCloze: !prev.allowCloze }))}
+                      className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
+                    >
+                      {t.allowCloze}: {getToggleLabel(wordTuning.allowCloze)}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
 
             <button 
               onClick={startGame}
@@ -608,6 +855,9 @@ export default function App() {
               ) : (
                 <>Use <span className="font-bold text-slate-300">← →</span> arrows or <span className="font-bold text-slate-300">Drag</span> to move</>
               )}
+            </div>
+            <div className="mt-6">
+              {renderMistakeList(currentMistakes)}
             </div>
               </>
             ) : subjectMode === SubjectMode.MATH ? (
@@ -737,10 +987,71 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              <div className="text-left rounded-2xl border border-white/10 bg-black/20 p-4 text-slate-300 text-sm leading-relaxed">
-                <h2 className="text-xl font-black text-white mb-2">{t.wordMode}</h2>
-                <p>{t.wordModeDescription}</p>
-                <p className="mt-2">{lang === 'zh' ? '当前版本会随机出现：英文选中文 / 中文选英文 / 句子填空。' : 'Current version randomizes: EN→ZH / ZH→EN / sentence cloze.'}</p>
+              <div className="text-left">
+                <div className="mb-6 flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-white">{t.wordPracticeTuning}</h2>
+                    <p className="mt-1 text-sm text-slate-400">{t.tuningDescription}</p>
+                  </div>
+                  <button
+                    onClick={() => setMenuView('main')}
+                    className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    {t.backToMenu}
+                  </button>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.wordDirection}</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { value: WordDirectionMode.MIXED, label: t.directionMixed },
+                      { value: WordDirectionMode.EN_TO_ZH, label: t.directionEnToZh },
+                      { value: WordDirectionMode.ZH_TO_EN, label: t.directionZhToEn },
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => setWordTuning(prev => ({ ...prev, directionMode: option.value }))}
+                        className={`rounded-2xl border px-4 py-3 text-left transition-all duration-300 ease-out ${
+                          wordTuning.directionMode === option.value
+                            ? 'border-cyan-300 bg-cyan-400/20 text-white shadow-[0_0_0_1px_rgba(34,211,238,0.25)]'
+                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-bold">{option.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.allowCloze}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[true, false].map(option => (
+                      <button
+                        key={String(option)}
+                        onClick={() => setWordTuning(prev => ({ ...prev, allowCloze: option }))}
+                        className={`rounded-2xl border px-4 py-3 text-center transition-all duration-300 ease-out ${
+                          wordTuning.allowCloze === option
+                            ? 'border-emerald-300 bg-emerald-400/20 text-white shadow-[0_0_0_1px_rgba(52,211,153,0.25)]'
+                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-bold">{getToggleLabel(option)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
+                  <p>{t.wordDirection}: <span className="font-bold text-white">{getWordDirectionLabel(wordTuning.directionMode)}</span></p>
+                  <p className="mt-2">{t.allowCloze}: <span className="font-bold text-white">{getToggleLabel(wordTuning.allowCloze)}</span></p>
+                  <p className="mt-3 text-slate-400">
+                    {lang === 'zh'
+                      ? '难度会继续决定词汇池层级、选项数，以及句子填空出现频率。'
+                      : 'Difficulty still controls the word pool, option count, and cloze frequency.'}
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -785,7 +1096,7 @@ export default function App() {
                     <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
                       <Trophy size={12} /> {t.best}
                     </span>
-                    <span className="text-3xl md:text-4xl font-black text-amber-500">{highScore}</span>
+                    <span className="text-3xl md:text-4xl font-black text-amber-500">{currentHighScore}</span>
                   </div>
                 </div>
               )}
@@ -795,6 +1106,8 @@ export default function App() {
                 </div>
               )}
             </div>
+            {playMode === PlayMode.QUICK_60 && renderTimedBoard()}
+            {sessionMistakes.length > 0 && <div className="mt-4">{renderMistakeList(sessionMistakes)}</div>}
 
             <button 
               onClick={playMode === PlayMode.QUICK_60 ? startQuickPractice : startGame}

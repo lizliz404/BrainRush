@@ -1,4 +1,5 @@
 import { Question, Difficulty, GameTuning, NumberRangeMode, OperationFocus } from '../types';
+import { shuffleArray } from '../utils/random';
 
 const getOperationPool = (difficulty: number, difficultySetting: Difficulty, tuning: GameTuning): string[] => {
   if (tuning.operationFocus === OperationFocus.ADD_SUB) {
@@ -197,7 +198,7 @@ export const generateQuestion = (
   }
 
   // Convert Set to Array and shuffle
-  const shuffledOptions = Array.from(options).sort(() => Math.random() - 0.5);
+  const shuffledOptions = shuffleArray(Array.from(options));
 
   return {
     text,

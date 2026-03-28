@@ -35,11 +35,22 @@ export enum NumberRangeMode {
   ABOVE_50 = 'ABOVE_50'
 }
 
+export enum WordDirectionMode {
+  MIXED = 'MIXED',
+  EN_TO_ZH = 'EN_TO_ZH',
+  ZH_TO_EN = 'ZH_TO_EN'
+}
+
 export interface GameTuning {
   operationFocus: OperationFocus;
   numberRange: NumberRangeMode;
   allowRemainder: boolean;
   allowNegative: boolean;
+}
+
+export interface WordTuning {
+  allowCloze: boolean;
+  directionMode: WordDirectionMode;
 }
 
 export interface AvatarConfig {
@@ -54,9 +65,29 @@ export interface Question {
   options: string[]; // The values displayed on falling blocks
 }
 
+export interface MistakeRecord {
+  id: string;
+  subjectMode: SubjectMode;
+  questionText: string;
+  correctAnswer: string;
+  selectedAnswer: string | null;
+  timestamp: string;
+}
+
+export interface TimedRunRecord {
+  id: string;
+  subjectMode: SubjectMode;
+  score: number;
+  accuracy: number;
+  correct: number;
+  attempts: number;
+  timestamp: string;
+}
+
 export interface VocabItem {
   en: string;
   zh: string;
+  difficulty: Difficulty;
 }
 
 export interface ClozeItem {
@@ -64,6 +95,7 @@ export interface ClozeItem {
   answer: string;
   zhHint: string;
   distractors: string[];
+  difficulty: Difficulty;
 }
 
 export interface BlockEntity {
