@@ -242,3 +242,11 @@ npm run build
 - 增加家长 / 老师视角的数据面板。
 - 增加连续登录、任务制、关卡制等长期激励机制。
 - 增加更丰富的角色、特效与音效反馈。
+
+## Status
+
+Usable prototype. Maintained.
+
+## License
+
+No license specified yet.
