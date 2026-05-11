@@ -50,8 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     `Play mode: ${payload.playMode || "unknown"}`,
     `Difficulty: ${payload.difficulty || "unknown"}`,
     `User-Agent: ${payload.userAgent || request.headers.get("user-agent") || "unknown"}`,
-  ].join("
-");
+  ].join("\n");
 
   const results: string[] = [];
 
