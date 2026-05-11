@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle, BookOpen } from 'lucide-react';
+import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle, BookOpen } from 'lucide-react';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
@@ -782,21 +782,22 @@ export default function App() {
             className="flex items-center gap-2 rounded-full border border-emerald-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-emerald-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all duration-[220ms] ease-out hover:-translate-y-0.5 hover:border-emerald-200/50 hover:bg-slate-900/85 hover:text-white"
           >
             <BookOpen size={14} />
-            🗂️ PEP Words
+            PEP Words
           </a>
-          <div className="bg-black/40 backdrop-blur-md rounded-full p-1 flex items-center border border-white/10 shadow-lg">
-          <button 
-            onClick={() => setLang('en')} 
-            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${lang === 'en' ? 'bg-white text-black shadow-sm' : 'text-white/50 hover:text-white'}`}
-          >
-            EN
-          </button>
-          <button 
-            onClick={() => setLang('zh')} 
-            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${lang === 'zh' ? 'bg-white text-black shadow-sm' : 'text-white/50 hover:text-white'}`}
-          >
-            中
-          </button>
+          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/40 p-1 shadow-lg backdrop-blur-md">
+            <Languages size={13} className="ml-2 text-white/55" />
+            <button
+              onClick={() => setLang('en')}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${lang === 'en' ? 'bg-white text-black shadow-sm' : 'text-white/50 hover:text-white'}`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLang('zh')}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${lang === 'zh' ? 'bg-white text-black shadow-sm' : 'text-white/50 hover:text-white'}`}
+            >
+              中
+            </button>
           </div>
         </div>
       )}
@@ -956,17 +957,19 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setSubjectMode(SubjectMode.WORD)}
-                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${subjectMode === SubjectMode.WORD ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${subjectMode === SubjectMode.WORD ? 'bg-white text-game-bg' : 'text-slate-300 hover:bg-white/10'}`}
                 >
-                  <Languages size={12} />
                   {lang === 'zh' ? '单词' : 'Word'}
                 </button>
               </div>
             </div>
-            <div className="flex justify-center mb-6">
-              <div className="p-4 bg-game-accent rounded-2xl shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)]">
-                <BrainCircuit size={48} className="text-white md:w-16 md:h-16" />
-              </div>
+            <div className="mb-6 flex justify-center">
+              <img
+                src="/brain-rush-icon.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-20 w-20 rounded-[1.75rem] shadow-[0_0_34px_-6px_rgba(34,211,238,0.72)] md:h-24 md:w-24"
+              />
             </div>
             
             <h1 className="text-4xl md:text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
