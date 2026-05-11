@@ -37,6 +37,42 @@
         color: white;
         touch-action: none; /* Prevent mobile pull-to-refresh */
       }
+
+      .animate-fade-in {
+        animation: fade-in 220ms ease-out both;
+      }
+
+      .animate-fade-out {
+        animation: fade-out 220ms ease-out both;
+      }
+
+      .animate-pop-in {
+        animation: pop-in 220ms ease-out both;
+      }
+
+      .animate-pop-out {
+        animation: pop-out 220ms ease-out both;
+      }
+
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes fade-out {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+
+      @keyframes pop-in {
+        from { opacity: 0; transform: translateY(10px) scale(0.985); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+
+      @keyframes pop-out {
+        from { opacity: 1; transform: translateY(0) scale(1); }
+        to { opacity: 0; transform: translateY(8px) scale(0.985); }
+      }
     </style>
   </head>
   <body>

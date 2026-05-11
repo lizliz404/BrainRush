@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle } from 'lucide-react';
+import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle, BookOpen } from 'lucide-react';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
+
+const PEP_WORDS_URL = 'https://pep-words.lizliz.xyz';
+const TRANSITION_MS = 220;
 
 const TRANSLATIONS = {
   en: {
@@ -75,17 +78,15 @@ const TRANSLATIONS = {
     productNote: 'Scores, avatar, tuning, mistakes, and timed runs stay in this browser.',
     feedback: 'Feedback',
     feedbackTitle: 'Suggest a fix',
-    feedbackHint: 'Tell me what felt wrong. This stays on this page first, so you do not need a GitHub account.',
+    feedbackHint: 'One sentence about what felt wrong is enough.',
     feedbackPlaceholder: 'Example: a question is too hard; mobile controls feel awkward; word mode needs…',
     feedbackSubmit: 'Submit feedback',
     feedbackSubmitting: 'Submitting…',
     feedbackSubmitted: 'Received. Thank you.',
     feedbackError: 'Submit failed. You can still send it to Liz directly.',
-    feedbackContact: 'You can also scan WeChat and send Liz a screenshot plus one sentence.',
-    feedbackGithub: 'Advanced: GitHub Issues',
     feedbackTabForm: 'Submit here',
     feedbackWechat: 'WeChat',
-    feedbackWechatHint: 'Scan WeChat for screenshots, screen recordings, or short feedback.',
+    feedbackWechatHint: 'Scan WeChat for screenshots, recordings, or one-line feedback.',
     feedbackWechatQrAlt: "Liz's WeChat QR code",
     feedbackWechatMissing: 'WeChat QR image should be placed at public/wechat-qr.png',
     feedbackClose: 'Close',
@@ -164,17 +165,15 @@ const TRANSLATIONS = {
     productNote: '分数、外观、设置、错题和计时记录只保存在当前浏览器。',
     feedback: '反馈',
     feedbackTitle: '提建议 / 报错',
-    feedbackHint: '直接写你觉得哪里不对。这里不会把你扔去 GitHub，也不需要账号。',
+    feedbackHint: '一句话说明哪里不对就行。',
     feedbackPlaceholder: '例如：某道题太难；手机操作不顺；单词模式希望增加……',
     feedbackSubmit: '提交反馈',
     feedbackSubmitting: '提交中…',
     feedbackSubmitted: '已收到，感谢。',
     feedbackError: '提交失败。你也可以把内容发给 Liz。',
-    feedbackContact: '也可以扫码加微信，把问题截图和一句话说明直接发给 Liz。',
-    feedbackGithub: '高级入口：GitHub Issues',
     feedbackTabForm: '站内提交',
     feedbackWechat: '微信',
-    feedbackWechatHint: '扫码加微信，适合发截图、录屏或一句话反馈。',
+    feedbackWechatHint: '扫码加微信，发截图、录屏或一句话反馈。',
     feedbackWechatQrAlt: 'Liz 的微信二维码',
     feedbackWechatMissing: '微信二维码图片待放入 public/wechat-qr.png',
     feedbackClose: '关闭',
@@ -297,6 +296,7 @@ export default function App() {
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [lang, setLang] = useState<Language>('en');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackClosing, setFeedbackClosing] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
@@ -601,7 +601,7 @@ export default function App() {
     );
 
     return (
-      <div className="absolute inset-0 z-40 flex flex-col bg-game-bg p-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="absolute inset-0 z-40 flex flex-col bg-game-bg p-6 overflow-y-auto animate-fade-in [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="flex items-center mb-8">
           <button 
             onClick={() => setGameState(GameState.MENU)}
@@ -698,6 +698,20 @@ export default function App() {
     window.alert(t.dataExported);
   };
 
+  const openFeedback = () => {
+    setFeedbackView('form');
+    setFeedbackClosing(false);
+    setFeedbackOpen(true);
+  };
+
+  const closeFeedback = () => {
+    setFeedbackClosing(true);
+    window.setTimeout(() => {
+      setFeedbackOpen(false);
+      setFeedbackClosing(false);
+    }, TRANSITION_MS);
+  };
+
   const submitFeedback = async () => {
     const message = feedbackText.trim();
     if (!message) return;
@@ -757,15 +771,19 @@ export default function App() {
       {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
         <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2 sm:left-auto sm:right-6 sm:justify-end">
           <button
-            onClick={() => {
-              setFeedbackView('form');
-              setFeedbackOpen(true);
-            }}
+            onClick={openFeedback}
             className="flex items-center gap-2 rounded-full border border-amber-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-amber-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-amber-200/50 hover:bg-slate-900/85 hover:text-white"
           >
             <MessageCircle size={14} />
             {t.feedback}
           </button>
+          <a
+            href={PEP_WORDS_URL}
+            className="flex items-center gap-2 rounded-full border border-emerald-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-emerald-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all duration-[220ms] ease-out hover:-translate-y-0.5 hover:border-emerald-200/50 hover:bg-slate-900/85 hover:text-white"
+          >
+            <BookOpen size={14} />
+            🗂️ PEP Words
+          </a>
           <div className="bg-black/40 backdrop-blur-md rounded-full p-1 flex items-center border border-white/10 shadow-lg">
           <button 
             onClick={() => setLang('en')} 
@@ -785,13 +803,13 @@ export default function App() {
 
       {feedbackOpen && (
         <div
-          className="absolute inset-0 z-[70] flex items-start justify-center bg-black/55 px-4 pt-20 backdrop-blur-md"
+          className={`absolute inset-0 z-[70] flex items-start justify-center bg-black/55 px-4 pt-20 backdrop-blur-md ${feedbackClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
           role="dialog"
           aria-modal="true"
-          onClick={() => setFeedbackOpen(false)}
+          onClick={closeFeedback}
         >
           <div
-            className="w-full max-w-md rounded-[1.75rem] border border-amber-100/15 bg-[#171421] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.46)]"
+            className={`w-full max-w-md rounded-[1.75rem] border border-amber-100/15 bg-[#171421] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.46)] ${feedbackClosing ? 'animate-pop-out' : 'animate-pop-in'}`}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -799,7 +817,7 @@ export default function App() {
                 <h2 className="text-2xl font-black text-white">{t.feedbackTitle}</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-400">{t.feedbackHint}</p>
               </div>
-              <button onClick={() => setFeedbackOpen(false)} aria-label={t.feedbackClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-2xl font-black leading-none text-slate-400 hover:bg-white/10 hover:text-white">
+              <button onClick={closeFeedback} aria-label={t.feedbackClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-2xl font-black leading-none text-slate-400 hover:bg-white/10 hover:text-white">
                 ×
               </button>
             </div>
@@ -828,10 +846,7 @@ export default function App() {
                   placeholder={t.feedbackPlaceholder}
                   className="mt-4 min-h-32 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-4 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/10"
                 />
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                  <a href="https://github.com/lizliz404/BrainRush/issues" target="_blank" rel="noreferrer" className="text-xs font-bold text-amber-200/70 hover:text-amber-100">
-                    {t.feedbackGithub}
-                  </a>
+                <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
                   <div className="flex items-center gap-3">
                     {feedbackStatus === 'submitted' && <span className="text-xs font-bold text-emerald-300">{t.feedbackSubmitted}</span>}
                     {feedbackStatus === 'error' && <span className="text-xs font-bold text-rose-300">{t.feedbackError}</span>}
@@ -850,8 +865,7 @@ export default function App() {
                     <div className="text-sm font-black leading-6 text-slate-500">{t.feedbackWechatMissing}</div>
                   )}
                 </div>
-                <p className="mt-3 text-sm font-black text-emerald-100">{t.feedbackWechatHint}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-400">{t.feedbackContact}</p>
+                <p className="mt-3 text-sm font-black leading-6 text-emerald-100">{t.feedbackWechatHint}</p>
               </div>
             )}
           </div>
@@ -928,7 +942,7 @@ export default function App() {
 
       {/* Main Menu */}
       {gameState === GameState.MENU && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-md bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {menuView === 'main' ? (
               <>
@@ -1296,7 +1310,7 @@ export default function App() {
 
       {/* Game Over Screen */}
       {gameState === GameState.GAME_OVER && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-red-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-red-900/80 p-4 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-md bg-white text-game-bg p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <h2 className="text-3xl md:text-4xl font-black text-game-wrong mb-2">{t.gameOver}</h2>
             <p className="text-slate-500 font-bold mb-6 text-sm md:text-base">
