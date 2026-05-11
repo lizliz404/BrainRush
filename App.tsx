@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages } from 'lucide-react';
+import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, Download, Trash2, MessageCircle } from 'lucide-react';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
@@ -70,6 +70,16 @@ const TRANSLATIONS = {
     correctAnswer: 'Correct answer',
     missedAnswer: 'Missed',
     timedBoardEmpty: 'No 60s runs saved yet.',
+    boundaryTitle: 'What this game does',
+    boundaryItems: ['No login', 'No ads', 'Local data only', '60-second practice'],
+    productNote: 'A tiny practice game for math/word drills. It saves scores, avatar, tuning, mistakes, and timed runs only in this browser.',
+    feedback: 'Suggest a fix',
+    exportData: 'Export my data',
+    clearData: 'Clear local data',
+    clearDataConfirm: 'Clear local Brain Rush data in this browser?',
+    firstRunHint: 'Default: Math + Normal. Use Quick Mode for a low-pressure 60s run, or Advanced if you want to tune the questions.',
+    dataExported: 'Brain Rush data exported.',
+    dataCleared: 'Local Brain Rush data cleared.',
   },
   zh: {
     title: '头脑冲刺',
@@ -134,6 +144,16 @@ const TRANSLATIONS = {
     correctAnswer: '正确答案',
     missedAnswer: '漏题',
     timedBoardEmpty: '还没有保存的 60 秒成绩。',
+    boundaryTitle: '这个游戏做什么',
+    boundaryItems: ['无登录', '无广告', '数据只在本机', '60 秒练习'],
+    productNote: '一个很小的口算/单词练习游戏。分数、外观、设置、错题和计时记录只保存在当前浏览器。',
+    feedback: '提个建议',
+    exportData: '导出我的数据',
+    clearData: '清除本机数据',
+    clearDataConfirm: '清除这个浏览器里的 Brain Rush 本地数据？',
+    firstRunHint: '默认：数学 + 普通难度。想低压力试一下，用 60 秒模式；想调题目，再进高级调节。',
+    dataExported: 'Brain Rush 数据已导出。',
+    dataCleared: '本地 Brain Rush 数据已清除。',
   }
 };
 
@@ -182,6 +202,15 @@ const TIMED_RUN_STORAGE_KEYS: Record<SubjectMode, string> = {
 
 const LEGACY_HIGH_SCORE_KEY = 'brainRushHighScore';
 const WORD_TUNING_STORAGE_KEY = 'brainRushWordTuning';
+const LOCAL_DATA_KEYS = [
+  ...Object.values(HIGH_SCORE_STORAGE_KEYS),
+  ...Object.values(MISTAKE_STORAGE_KEYS),
+  ...Object.values(TIMED_RUN_STORAGE_KEYS),
+  LEGACY_HIGH_SCORE_KEY,
+  WORD_TUNING_STORAGE_KEY,
+  'brainRushAvatar',
+  'brainRushTuning',
+];
 
 const readStoredScore = (key: string): number | null => {
   const raw = localStorage.getItem(key);
@@ -608,6 +637,40 @@ export default function App() {
     </div>
   );
 
+
+  const exportLocalData = () => {
+    const data = LOCAL_DATA_KEYS.reduce<Record<string, string | null>>((acc, key) => {
+      acc[key] = localStorage.getItem(key);
+      return acc;
+    }, {});
+
+    const blob = new Blob([
+      JSON.stringify({ app: 'Brain Rush', exportedAt: new Date().toISOString(), data }, null, 2),
+    ], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `brain-rush-data-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    window.alert(t.dataExported);
+  };
+
+  const clearLocalData = () => {
+    if (!window.confirm(t.clearDataConfirm)) return;
+
+    LOCAL_DATA_KEYS.forEach(key => localStorage.removeItem(key));
+    setHighScores({ [SubjectMode.MATH]: 0, [SubjectMode.WORD]: 0 });
+    setAvatar({ head: '😃', body: '👕', legs: '👖' });
+    setTuning(DEFAULT_TUNING);
+    setWordTuning(DEFAULT_WORD_TUNING);
+    setMistakeBook({ [SubjectMode.MATH]: [], [SubjectMode.WORD]: [] });
+    setTimedRunHistory({ [SubjectMode.MATH]: [], [SubjectMode.WORD]: [] });
+    resetSessionMistakes();
+    window.alert(t.dataCleared);
+  };
+
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans selection:bg-none pt-[calc(env(safe-area-inset-top)+4px)] pb-[calc(env(safe-area-inset-bottom)+4px)]">
       
@@ -849,6 +912,25 @@ export default function App() {
               {t.customize}
             </button>
             
+            
+            <div className="mt-6 flex items-center justify-center gap-3 text-[11px] text-slate-500">
+              <a
+                href="https://github.com/lizliz404/BrainRush/issues"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-slate-300 transition-colors"
+              >
+                {t.feedback}
+              </a>
+              <span className="opacity-30">·</span>
+              <button type="button" onClick={exportLocalData} className="hover:text-slate-300 transition-colors">
+                {t.exportData}
+              </button>
+              <span className="opacity-30">·</span>
+              <button type="button" onClick={clearLocalData} className="hover:text-slate-300 transition-colors">
+                {t.clearData}
+              </button>
+            </div>
             <div className="mt-6 md:mt-8 text-xs md:text-sm text-slate-500">
               {lang === 'zh' ? (
                 <>使用 <span className="font-bold text-slate-300">← →</span> 方向键或 <span className="font-bold text-slate-300">拖拽</span> 来移动</>
