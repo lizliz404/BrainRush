@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, Download, Trash2, MessageCircle } from 'lucide-react';
+import { Play, RotateCcw, BrainCircuit, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle } from 'lucide-react';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
@@ -71,9 +71,16 @@ const TRANSLATIONS = {
     missedAnswer: 'Missed',
     timedBoardEmpty: 'No 60s runs saved yet.',
     boundaryTitle: 'What this game does',
-    boundaryItems: ['No login', 'No ads', 'Local data only', '60-second practice'],
-    productNote: 'A tiny practice game for math/word drills. It saves scores, avatar, tuning, mistakes, and timed runs only in this browser.',
-    feedback: 'Suggest a fix',
+    boundaryItems: ['Local data only', '60-second practice'],
+    productNote: 'Scores, avatar, tuning, mistakes, and timed runs stay in this browser.',
+    feedback: 'Feedback',
+    feedbackTitle: 'Suggest a fix',
+    feedbackHint: 'Tell me what felt wrong. This stays on this page first, so you do not need a GitHub account.',
+    feedbackPlaceholder: 'Example: a question is too hard; mobile controls feel awkward; word mode needs…',
+    feedbackCopy: 'Copy feedback',
+    feedbackCopied: 'Copied',
+    feedbackGithub: 'Advanced: open GitHub Issues',
+    feedbackClose: 'Close',
     exportData: 'Export my data',
     clearData: 'Clear local data',
     clearDataConfirm: 'Clear local Brain Rush data in this browser?',
@@ -145,9 +152,16 @@ const TRANSLATIONS = {
     missedAnswer: '漏题',
     timedBoardEmpty: '还没有保存的 60 秒成绩。',
     boundaryTitle: '这个游戏做什么',
-    boundaryItems: ['无登录', '无广告', '数据只在本机', '60 秒练习'],
-    productNote: '一个很小的口算/单词练习游戏。分数、外观、设置、错题和计时记录只保存在当前浏览器。',
-    feedback: '提个建议',
+    boundaryItems: ['数据只在本机', '60 秒练习'],
+    productNote: '分数、外观、设置、错题和计时记录只保存在当前浏览器。',
+    feedback: '反馈',
+    feedbackTitle: '提建议 / 报错',
+    feedbackHint: '直接写你觉得哪里不对。这里不会把你扔去 GitHub，也不需要账号。',
+    feedbackPlaceholder: '例如：某道题太难；手机操作不顺；单词模式希望增加……',
+    feedbackCopy: '复制反馈',
+    feedbackCopied: '已复制',
+    feedbackGithub: '高级：去 GitHub Issues',
+    feedbackClose: '关闭',
     exportData: '导出我的数据',
     clearData: '清除本机数据',
     clearDataConfirm: '清除这个浏览器里的 Brain Rush 本地数据？',
@@ -266,6 +280,9 @@ export default function App() {
   const [timeLeftSec, setTimeLeftSec] = useState(60);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [lang, setLang] = useState<Language>('en');
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackCopied, setFeedbackCopied] = useState(false);
   
   const t = TRANSLATIONS[lang];
 
@@ -656,6 +673,13 @@ export default function App() {
     window.alert(t.dataExported);
   };
 
+  const copyFeedback = async () => {
+    const message = `[Brain Rush feedback]\n${window.location.href}\n\n${feedbackText.trim()}`;
+    await navigator.clipboard.writeText(message);
+    setFeedbackCopied(true);
+    window.setTimeout(() => setFeedbackCopied(false), 1600);
+  };
+
   const clearLocalData = () => {
     if (!window.confirm(t.clearDataConfirm)) return;
 
@@ -677,9 +701,17 @@ export default function App() {
       {/* Background Decor */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#1e1b4b] to-black opacity-80 z-0"></div>
 
-      {/* Language Switcher */}
+      {/* Top Actions */}
       {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
-        <div className="absolute top-6 right-6 z-50 bg-black/40 backdrop-blur-md rounded-full p-1 flex items-center border border-white/10 shadow-lg">
+        <div className="absolute top-6 right-6 z-50 flex items-center gap-2">
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="bg-black/40 backdrop-blur-md rounded-full px-3 py-2 flex items-center gap-2 border border-white/10 shadow-lg text-xs font-bold text-white/80 hover:text-white hover:bg-black/55 transition-all"
+          >
+            <MessageCircle size={14} />
+            {t.feedback}
+          </button>
+          <div className="bg-black/40 backdrop-blur-md rounded-full p-1 flex items-center border border-white/10 shadow-lg">
           <button 
             onClick={() => setLang('en')} 
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${lang === 'en' ? 'bg-white text-black shadow-sm' : 'text-white/50 hover:text-white'}`}
@@ -692,6 +724,37 @@ export default function App() {
           >
             中
           </button>
+          </div>
+        </div>
+      )}
+
+      {feedbackOpen && (
+        <div className="absolute inset-0 z-[70] flex items-start justify-center bg-black/60 px-4 pt-20 backdrop-blur-md" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950 p-5 text-left shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-white">{t.feedbackTitle}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-400">{t.feedbackHint}</p>
+              </div>
+              <button onClick={() => setFeedbackOpen(false)} className="rounded-full px-3 py-1.5 text-sm font-bold text-slate-400 hover:bg-white/10 hover:text-white">
+                {t.feedbackClose}
+              </button>
+            </div>
+            <textarea
+              value={feedbackText}
+              onChange={(event) => setFeedbackText(event.target.value)}
+              placeholder={t.feedbackPlaceholder}
+              className="mt-5 min-h-32 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-4 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/10"
+            />
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <a href="https://github.com/lizliz404/BrainRush/issues" target="_blank" rel="noreferrer" className="text-xs font-bold text-slate-500 hover:text-slate-300">
+                {t.feedbackGithub}
+              </a>
+              <button onClick={copyFeedback} disabled={feedbackText.trim().length === 0} className="rounded-full bg-cyan-300 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
+                {feedbackCopied ? t.feedbackCopied : t.feedbackCopy}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -914,15 +977,6 @@ export default function App() {
             
             
             <div className="mt-6 flex items-center justify-center gap-3 text-[11px] text-slate-500">
-              <a
-                href="https://github.com/lizliz404/BrainRush/issues"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-slate-300 transition-colors"
-              >
-                {t.feedback}
-              </a>
-              <span className="opacity-30">·</span>
               <button type="button" onClick={exportLocalData} className="hover:text-slate-300 transition-colors">
                 {t.exportData}
               </button>
