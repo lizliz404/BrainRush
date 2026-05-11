@@ -784,15 +784,23 @@ export default function App() {
       )}
 
       {feedbackOpen && (
-        <div className="absolute inset-0 z-[70] flex items-start justify-center bg-black/55 px-4 pt-20 backdrop-blur-md" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-[1.75rem] border border-amber-100/15 bg-[#171421] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.46)]">
+        <div
+          className="absolute inset-0 z-[70] flex items-start justify-center bg-black/55 px-4 pt-20 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setFeedbackOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-[1.75rem] border border-amber-100/15 bg-[#171421] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.46)]"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black text-white">{t.feedbackTitle}</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-400">{t.feedbackHint}</p>
               </div>
-              <button onClick={() => setFeedbackOpen(false)} className="rounded-full px-3 py-1.5 text-sm font-bold text-slate-400 hover:bg-white/10 hover:text-white">
-                {t.feedbackClose}
+              <button onClick={() => setFeedbackOpen(false)} aria-label={t.feedbackClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-2xl font-black leading-none text-slate-400 hover:bg-white/10 hover:text-white">
+                ×
               </button>
             </div>
             <div className="mt-5 inline-flex rounded-full border border-white/10 bg-black/25 p-1">
@@ -835,9 +843,9 @@ export default function App() {
               </>
             ) : (
               <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-center">
-                <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-2xl border border-emerald-200/20 bg-white p-3 shadow-[0_18px_50px_rgba(16,185,129,0.16)]">
+                <div className="mx-auto flex h-56 w-56 max-w-full items-center justify-center overflow-hidden rounded-2xl border border-emerald-200/20 bg-white p-2 shadow-[0_18px_50px_rgba(16,185,129,0.16)] sm:h-64 sm:w-64">
                   {wechatQrReady ? (
-                    <img src="/wechat-qr.png" alt={t.feedbackWechatQrAlt} className="h-full w-full object-contain" onError={() => setWechatQrReady(false)} />
+                    <img src="/wechat-qr.png" alt={t.feedbackWechatQrAlt} className="h-full w-full object-cover" onError={() => setWechatQrReady(false)} />
                   ) : (
                     <div className="text-sm font-black leading-6 text-slate-500">{t.feedbackWechatMissing}</div>
                   )}
