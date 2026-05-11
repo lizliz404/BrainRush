@@ -81,8 +81,13 @@ const TRANSLATIONS = {
     feedbackSubmitting: 'Submitting…',
     feedbackSubmitted: 'Received. Thank you.',
     feedbackError: 'Submit failed. You can still send it to Liz directly.',
-    feedbackContact: 'Contact maintainer: send this to Liz on Telegram / WeChat',
+    feedbackContact: 'You can also scan WeChat and send Liz a screenshot plus one sentence.',
     feedbackGithub: 'Advanced: GitHub Issues',
+    feedbackTabForm: 'Submit here',
+    feedbackWechat: 'WeChat',
+    feedbackWechatHint: 'Scan WeChat for screenshots, screen recordings, or short feedback.',
+    feedbackWechatQrAlt: "Liz's WeChat QR code",
+    feedbackWechatMissing: 'WeChat QR image should be placed at public/wechat-qr.png',
     feedbackClose: 'Close',
     exportData: 'Export my data',
     clearData: 'Clear local data',
@@ -165,8 +170,13 @@ const TRANSLATIONS = {
     feedbackSubmitting: '提交中…',
     feedbackSubmitted: '已收到，感谢。',
     feedbackError: '提交失败。你也可以把内容发给 Liz。',
-    feedbackContact: '联系维护者：Telegram / 微信直接发给 Liz',
+    feedbackContact: '也可以扫码加微信，把问题截图和一句话说明直接发给 Liz。',
     feedbackGithub: '高级入口：GitHub Issues',
+    feedbackTabForm: '站内提交',
+    feedbackWechat: '微信',
+    feedbackWechatHint: '扫码加微信，适合发截图、录屏或一句话反馈。',
+    feedbackWechatQrAlt: 'Liz 的微信二维码',
+    feedbackWechatMissing: '微信二维码图片待放入 public/wechat-qr.png',
     feedbackClose: '关闭',
     exportData: '导出我的数据',
     clearData: '清除本机数据',
@@ -289,6 +299,8 @@ export default function App() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
+  const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
+  const [wechatQrReady, setWechatQrReady] = useState(true);
   
   const t = TRANSLATIONS[lang];
 
@@ -745,7 +757,10 @@ export default function App() {
       {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
         <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2 sm:left-auto sm:right-6 sm:justify-end">
           <button
-            onClick={() => setFeedbackOpen(true)}
+            onClick={() => {
+              setFeedbackView('form');
+              setFeedbackOpen(true);
+            }}
             className="flex items-center gap-2 rounded-full border border-amber-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-amber-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-amber-200/50 hover:bg-slate-900/85 hover:text-white"
           >
             <MessageCircle size={14} />
@@ -780,27 +795,57 @@ export default function App() {
                 {t.feedbackClose}
               </button>
             </div>
-            <textarea
-              value={feedbackText}
-              onChange={(event) => setFeedbackText(event.target.value)}
-              placeholder={t.feedbackPlaceholder}
-              className="mt-5 min-h-32 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-4 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/10"
-            />
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-400">{t.feedbackContact}</p>
-                <a href="https://github.com/lizliz404/BrainRush/issues" target="_blank" rel="noreferrer" className="text-xs font-bold text-amber-200/70 hover:text-amber-100">
-                  {t.feedbackGithub}
-                </a>
-              </div>
-              <div className="flex items-center gap-3">
-                {feedbackStatus === 'submitted' && <span className="text-xs font-bold text-emerald-300">{t.feedbackSubmitted}</span>}
-                {feedbackStatus === 'error' && <span className="text-xs font-bold text-rose-300">{t.feedbackError}</span>}
-                <button onClick={submitFeedback} disabled={feedbackText.trim().length === 0 || feedbackStatus === 'submitting'} className="rounded-full bg-amber-200 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40">
-                  {feedbackStatus === 'submitting' ? t.feedbackSubmitting : t.feedbackSubmit}
-                </button>
-              </div>
+            <div className="mt-5 inline-flex rounded-full border border-white/10 bg-black/25 p-1">
+              <button
+                onClick={() => setFeedbackView('form')}
+                className={`rounded-full px-3.5 py-2 text-xs font-black transition ${feedbackView === 'form' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'}`}
+              >
+                {t.feedbackTabForm}
+              </button>
+              <button
+                onClick={() => setFeedbackView('wechat')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-black transition ${feedbackView === 'wechat' ? 'bg-emerald-400 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                aria-label={t.feedbackWechat}
+              >
+                <span aria-hidden="true">💬</span>
+                <span>{t.feedbackWechat}</span>
+              </button>
             </div>
+
+            {feedbackView === 'form' ? (
+              <>
+                <textarea
+                  value={feedbackText}
+                  onChange={(event) => setFeedbackText(event.target.value)}
+                  placeholder={t.feedbackPlaceholder}
+                  className="mt-4 min-h-32 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-4 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/10"
+                />
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <a href="https://github.com/lizliz404/BrainRush/issues" target="_blank" rel="noreferrer" className="text-xs font-bold text-amber-200/70 hover:text-amber-100">
+                    {t.feedbackGithub}
+                  </a>
+                  <div className="flex items-center gap-3">
+                    {feedbackStatus === 'submitted' && <span className="text-xs font-bold text-emerald-300">{t.feedbackSubmitted}</span>}
+                    {feedbackStatus === 'error' && <span className="text-xs font-bold text-rose-300">{t.feedbackError}</span>}
+                    <button onClick={submitFeedback} disabled={feedbackText.trim().length === 0 || feedbackStatus === 'submitting'} className="rounded-full bg-amber-200 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40">
+                      {feedbackStatus === 'submitting' ? t.feedbackSubmitting : t.feedbackSubmit}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-center">
+                <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-2xl border border-emerald-200/20 bg-white p-3 shadow-[0_18px_50px_rgba(16,185,129,0.16)]">
+                  {wechatQrReady ? (
+                    <img src="/wechat-qr.png" alt={t.feedbackWechatQrAlt} className="h-full w-full object-contain" onError={() => setWechatQrReady(false)} />
+                  ) : (
+                    <div className="text-sm font-black leading-6 text-slate-500">{t.feedbackWechatMissing}</div>
+                  )}
+                </div>
+                <p className="mt-3 text-sm font-black text-emerald-100">{t.feedbackWechatHint}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">{t.feedbackContact}</p>
+              </div>
+            )}
           </div>
         </div>
       )}

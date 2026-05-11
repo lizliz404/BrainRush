@@ -55,7 +55,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const results: string[] = [];
 
-  if (env.GITHUB_TOKEN && env.GITHUB_REPO) {
+  const hasGitHubDelivery = Boolean(env.GITHUB_TOKEN && env.GITHUB_REPO);
+  const hasTelegramDelivery = Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID);
+
+  if (!hasGitHubDelivery && !hasTelegramDelivery) {
+    return json({ ok: false, error: "No feedback delivery channel configured" }, 503);
+  }
+
+  if (hasGitHubDelivery) {
     const issueResponse = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/issues`, {
       method: "POST",
       headers: {
@@ -74,7 +81,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     results.push("github");
   }
 
-  if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
+  if (hasTelegramDelivery) {
     const telegramResponse = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
