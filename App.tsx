@@ -968,7 +968,7 @@ export default function App() {
                 src="/brain-rush-icon.svg"
                 alt=""
                 aria-hidden="true"
-                className="h-20 w-20 rounded-[1.75rem] shadow-[0_0_34px_-6px_rgba(34,211,238,0.72)] md:h-24 md:w-24"
+                className="h-20 w-20 rounded-[1.5rem] shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] md:h-24 md:w-24"
               />
             </div>
             
