@@ -77,9 +77,12 @@ const TRANSLATIONS = {
     feedbackTitle: 'Suggest a fix',
     feedbackHint: 'Tell me what felt wrong. This stays on this page first, so you do not need a GitHub account.',
     feedbackPlaceholder: 'Example: a question is too hard; mobile controls feel awkward; word mode needs…',
-    feedbackCopy: 'Copy feedback',
-    feedbackCopied: 'Copied',
-    feedbackGithub: 'Advanced: open GitHub Issues',
+    feedbackSubmit: 'Submit feedback',
+    feedbackSubmitting: 'Submitting…',
+    feedbackSubmitted: 'Received. Thank you.',
+    feedbackError: 'Submit failed. You can still send it to Liz directly.',
+    feedbackContact: 'Contact maintainer: send this to Liz on Telegram / WeChat',
+    feedbackGithub: 'Advanced: GitHub Issues',
     feedbackClose: 'Close',
     exportData: 'Export my data',
     clearData: 'Clear local data',
@@ -158,9 +161,12 @@ const TRANSLATIONS = {
     feedbackTitle: '提建议 / 报错',
     feedbackHint: '直接写你觉得哪里不对。这里不会把你扔去 GitHub，也不需要账号。',
     feedbackPlaceholder: '例如：某道题太难；手机操作不顺；单词模式希望增加……',
-    feedbackCopy: '复制反馈',
-    feedbackCopied: '已复制',
-    feedbackGithub: '高级：去 GitHub Issues',
+    feedbackSubmit: '提交反馈',
+    feedbackSubmitting: '提交中…',
+    feedbackSubmitted: '已收到，感谢。',
+    feedbackError: '提交失败。你也可以把内容发给 Liz。',
+    feedbackContact: '联系维护者：Telegram / 微信直接发给 Liz',
+    feedbackGithub: '高级入口：GitHub Issues',
     feedbackClose: '关闭',
     exportData: '导出我的数据',
     clearData: '清除本机数据',
@@ -282,9 +288,16 @@ export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackCopied, setFeedbackCopied] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   
   const t = TRANSLATIONS[lang];
+
+  useEffect(() => {
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.title = lang === 'zh'
+      ? 'Brain Rush｜60 秒数学与单词反应练习'
+      : 'Brain Rush｜60-second math and word reaction practice';
+  }, [lang]);
 
   // Load saved data
   const [highScores, setHighScores] = useState<Record<SubjectMode, number>>(() => loadHighScores());
@@ -673,11 +686,38 @@ export default function App() {
     window.alert(t.dataExported);
   };
 
-  const copyFeedback = async () => {
-    const message = `[Brain Rush feedback]\n${window.location.href}\n\n${feedbackText.trim()}`;
-    await navigator.clipboard.writeText(message);
-    setFeedbackCopied(true);
-    window.setTimeout(() => setFeedbackCopied(false), 1600);
+  const submitFeedback = async () => {
+    const message = feedbackText.trim();
+    if (!message) return;
+
+    setFeedbackStatus('submitting');
+
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app: 'brain-rush',
+          message,
+          locale: lang,
+          gameState,
+          subjectMode,
+          playMode,
+          difficulty,
+          url: window.location.href,
+          userAgent: navigator.userAgent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Feedback request failed: ${response.status}`);
+      }
+
+      setFeedbackStatus('submitted');
+      setFeedbackText('');
+    } catch {
+      setFeedbackStatus('error');
+    }
   };
 
   const clearLocalData = () => {
@@ -703,10 +743,10 @@ export default function App() {
 
       {/* Top Actions */}
       {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
-        <div className="absolute top-6 right-6 z-50 flex items-center gap-2">
+        <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2 sm:left-auto sm:right-6 sm:justify-end">
           <button
             onClick={() => setFeedbackOpen(true)}
-            className="bg-black/40 backdrop-blur-md rounded-full px-3 py-2 flex items-center gap-2 border border-white/10 shadow-lg text-xs font-bold text-white/80 hover:text-white hover:bg-black/55 transition-all"
+            className="flex items-center gap-2 rounded-full border border-amber-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-amber-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-amber-200/50 hover:bg-slate-900/85 hover:text-white"
           >
             <MessageCircle size={14} />
             {t.feedback}
@@ -729,8 +769,8 @@ export default function App() {
       )}
 
       {feedbackOpen && (
-        <div className="absolute inset-0 z-[70] flex items-start justify-center bg-black/60 px-4 pt-20 backdrop-blur-md" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950 p-5 text-left shadow-2xl">
+        <div className="absolute inset-0 z-[70] flex items-start justify-center bg-black/55 px-4 pt-20 backdrop-blur-md" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-[1.75rem] border border-amber-100/15 bg-[#171421] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.46)]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black text-white">{t.feedbackTitle}</h2>
@@ -747,12 +787,19 @@ export default function App() {
               className="mt-5 min-h-32 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-4 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-400/10"
             />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <a href="https://github.com/lizliz404/BrainRush/issues" target="_blank" rel="noreferrer" className="text-xs font-bold text-slate-500 hover:text-slate-300">
-                {t.feedbackGithub}
-              </a>
-              <button onClick={copyFeedback} disabled={feedbackText.trim().length === 0} className="rounded-full bg-cyan-300 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
-                {feedbackCopied ? t.feedbackCopied : t.feedbackCopy}
-              </button>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-400">{t.feedbackContact}</p>
+                <a href="https://github.com/lizliz404/BrainRush/issues" target="_blank" rel="noreferrer" className="text-xs font-bold text-amber-200/70 hover:text-amber-100">
+                  {t.feedbackGithub}
+                </a>
+              </div>
+              <div className="flex items-center gap-3">
+                {feedbackStatus === 'submitted' && <span className="text-xs font-bold text-emerald-300">{t.feedbackSubmitted}</span>}
+                {feedbackStatus === 'error' && <span className="text-xs font-bold text-rose-300">{t.feedbackError}</span>}
+                <button onClick={submitFeedback} disabled={feedbackText.trim().length === 0 || feedbackStatus === 'submitting'} className="rounded-full bg-amber-200 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40">
+                  {feedbackStatus === 'submitting' ? t.feedbackSubmitting : t.feedbackSubmit}
+                </button>
+              </div>
             </div>
           </div>
         </div>
