@@ -258,6 +258,9 @@ const loadHighScores = (): Record<SubjectMode, number> => {
   };
 };
 
+const scoreValues = (scores: Record<SubjectMode, number>): number[] =>
+  Object.values(scores).filter((score): score is number => Number.isFinite(score));
+
 const loadStoredJson = <T extends object,>(key: string, fallback: T): T => {
   try {
     const raw = localStorage.getItem(key);
@@ -333,7 +336,7 @@ export default function App() {
   const latestStatsRef = useRef({ correct: 0, attempts: 0, accuracy: 0 });
 
   const currentHighScore = highScores[subjectMode];
-  const overallHighScore = Math.max(...Object.values(highScores));
+  const overallHighScore = Math.max(...scoreValues(highScores), 0);
   const currentMistakes = mistakeBook[subjectMode];
   const currentTimedRuns = timedRunHistory[subjectMode];
 
