@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import confetti from 'canvas-confetti';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
 import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle, BookOpen } from 'lucide-react';
@@ -8,6 +9,7 @@ type Language = 'en' | 'zh';
 
 const PEP_WORDS_URL = 'https://pep-words.lizliz.xyz';
 const TRANSITION_MS = 220;
+const CONFETTI_COLORS = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#34d399', '#fb7185'];
 
 const TRANSLATIONS = {
   en: {
@@ -75,6 +77,7 @@ const TRANSLATIONS = {
     timedBoardEmpty: 'No 60s runs saved yet.',
     boundaryTitle: 'What this game does',
     boundaryItems: ['Local data only', '60-second practice'],
+    seoLabel: 'What is Brain Rush?',
     seoDescription: 'Brain Rush is a 60-second math speed and English word reaction game for quick practice in calculation speed, word recognition, and attention. Scores, mistakes, and settings stay in your local browser.',
     productNote: 'Scores, avatar, tuning, mistakes, and timed runs stay in this browser.',
     feedback: 'Feedback',
@@ -163,6 +166,7 @@ const TRANSLATIONS = {
     timedBoardEmpty: '还没有保存的 60 秒成绩。',
     boundaryTitle: '这个游戏做什么',
     boundaryItems: ['数据只在本机', '60 秒练习'],
+    seoLabel: 'Brain Rush 是什么？',
     seoDescription: 'Brain Rush 是一个 60 秒数学速算和英语单词反应练习小游戏，适合用碎片时间练习计算速度、单词识别和注意力反应。成绩、错题和设置都只保存在本地浏览器。',
     productNote: '分数、外观、设置、错题和计时记录只保存在当前浏览器。',
     feedback: '反馈',
@@ -287,6 +291,21 @@ const loadRecordsBySubject = <T,>(keys: Record<SubjectMode, string>): Record<Sub
   [SubjectMode.WORD]: loadStoredList<T>(keys[SubjectMode.WORD]),
 });
 
+const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
+  confetti({
+    particleCount: Math.round(18 * intensity),
+    spread: 58,
+    startVelocity: 28,
+    scalar: 0.72,
+    ticks: 78,
+    colors: CONFETTI_COLORS,
+    origin: {
+      x: clientX / window.innerWidth,
+      y: clientY / window.innerHeight,
+    },
+  });
+};
+
 export default function App() {
   const [menuView, setMenuView] = useState<'main' | 'tuning'>('main');
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -306,6 +325,7 @@ export default function App() {
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
   const [wechatQrReady, setWechatQrReady] = useState(true);
+  const lastPointerConfettiRef = useRef(0);
   
   const t = TRANSLATIONS[lang];
 
@@ -486,6 +506,22 @@ export default function App() {
     const nextMistakes = [...sessionMistakesRef.current, mistake];
     sessionMistakesRef.current = nextMistakes;
     setSessionMistakes(nextMistakes);
+  };
+
+  const handleAmbientPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (gameState !== GameState.MENU || feedbackOpen || menuView !== 'main') return;
+    if (event.pointerType !== 'mouse') return;
+
+    const now = window.performance.now();
+    if (now - lastPointerConfettiRef.current < 260) return;
+
+    lastPointerConfettiRef.current = now;
+    fireConfettiAt(event.clientX, event.clientY, 0.42);
+  };
+
+  const handleAmbientPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (gameState !== GameState.MENU || feedbackOpen || menuView !== 'main') return;
+    fireConfettiAt(event.clientX, event.clientY, event.pointerType === 'mouse' ? 0.85 : 1.05);
   };
 
   const startGame = () => {
@@ -767,7 +803,11 @@ export default function App() {
 
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans selection:bg-none pt-[calc(env(safe-area-inset-top)+4px)] pb-[calc(env(safe-area-inset-bottom)+4px)]">
+    <div
+      className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans selection:bg-none pt-[calc(env(safe-area-inset-top)+4px)] pb-[calc(env(safe-area-inset-bottom)+4px)]"
+      onPointerMove={handleAmbientPointerMove}
+      onPointerDown={handleAmbientPointerDown}
+    >
       
       {/* Background Decor */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#1e1b4b] to-black opacity-80 z-0"></div>
@@ -983,9 +1023,21 @@ export default function App() {
             <p className="text-slate-300 text-base md:text-lg mb-3 font-medium">
               {subjectMode === SubjectMode.WORD ? t.wordModeDescription : t.subtitle}
             </p>
-            <p className="mx-auto mb-5 max-w-sm text-xs leading-5 text-slate-400 md:text-sm">
-              {t.seoDescription}
-            </p>
+            <div className="group/seo relative mx-auto mb-5 inline-flex max-w-sm flex-col items-center">
+              <button
+                type="button"
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-black text-slate-300 transition hover:border-cyan-300/40 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
+                aria-describedby="brain-rush-seo-description"
+              >
+                {t.seoLabel}
+              </button>
+              <p
+                id="brain-rush-seo-description"
+                className="pointer-events-none absolute left-1/2 top-[calc(100%+0.55rem)] z-40 w-[min(20rem,78vw)] -translate-x-1/2 translate-y-1 rounded-2xl border border-white/10 bg-slate-950/95 p-3 text-xs leading-5 text-slate-200 opacity-0 shadow-2xl transition duration-150 group-hover/seo:translate-y-0 group-hover/seo:opacity-100 group-focus-within/seo:translate-y-0 group-focus-within/seo:opacity-100"
+              >
+                {t.seoDescription}
+              </p>
+            </div>
 
             {/* Difficulty Selector */}
             <div className="mb-8">
