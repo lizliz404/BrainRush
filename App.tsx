@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import confetti from 'canvas-confetti';
+import { animate } from 'animejs';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
 import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle, BookOpen } from 'lucide-react';
@@ -292,17 +292,37 @@ const loadRecordsBySubject = <T,>(keys: Record<SubjectMode, string>): Record<Sub
 });
 
 const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
-  confetti({
-    particleCount: Math.round(18 * intensity),
-    spread: 58,
-    startVelocity: 28,
-    scalar: 0.72,
-    ticks: 78,
-    colors: CONFETTI_COLORS,
-    origin: {
-      x: clientX / window.innerWidth,
-      y: clientY / window.innerHeight,
-    },
+  if (typeof document === 'undefined') return;
+
+  const particleCount = Math.max(6, Math.round(16 * intensity));
+  const root = document.createElement('div');
+  root.setAttribute('aria-hidden', 'true');
+  root.className = 'pointer-events-none fixed left-0 top-0 z-[70] h-0 w-0 overflow-visible';
+  root.style.transform = `translate3d(${clientX}px, ${clientY}px, 0)`;
+  document.body.appendChild(root);
+
+  const particles = Array.from({ length: particleCount }, (_, index) => {
+    const particle = document.createElement('span');
+    const size = 5 + Math.random() * 6;
+    particle.className = 'absolute block rounded-[2px] opacity-95';
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size * (0.65 + Math.random() * 0.6)}px`;
+    particle.style.background = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
+    particle.style.transform = `translate3d(-50%, -50%, 0) rotate(${Math.random() * 180}deg)`;
+    root.appendChild(particle);
+    return particle;
+  });
+
+  animate(particles, {
+    x: () => (Math.random() - 0.5) * 130 * intensity,
+    y: () => -30 - Math.random() * 70 * intensity,
+    rotate: () => Math.random() * 520 - 260,
+    scale: [1, 0.25],
+    opacity: [1, 0],
+    duration: () => 420 + Math.random() * 360,
+    delay: (_target, index) => index * 7,
+    ease: 'outQuad',
+    onComplete: () => root.remove(),
   });
 };
 
