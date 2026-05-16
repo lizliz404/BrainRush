@@ -208,6 +208,8 @@ const UNLOCKABLE_SETS = [
   { score: 50, head: '🎃', body: '👗', legs: '👠' },
 ];
 
+const DEFAULT_AVATAR: AvatarConfig = { head: '😃', body: '👕', legs: '👖' };
+
 const DEFAULT_TUNING: GameTuning = {
   operationFocus: OperationFocus.RANDOM,
   numberRange: NumberRangeMode.RANDOM,
@@ -255,6 +257,19 @@ const readStoredScore = (key: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const parseJsonOrFallback = <T extends object,>(raw: string | null, fallback: T): T => {
+  if (!raw) return fallback;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? { ...fallback, ...parsed }
+      : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 const loadHighScores = (): Record<SubjectMode, number> => {
   const legacyHighScore = readStoredScore(LEGACY_HIGH_SCORE_KEY) ?? 0;
 
@@ -267,14 +282,8 @@ const loadHighScores = (): Record<SubjectMode, number> => {
 const scoreValues = (scores: Record<SubjectMode, number>): number[] =>
   Object.values(scores).filter((score): score is number => Number.isFinite(score));
 
-const loadStoredJson = <T extends object,>(key: string, fallback: T): T => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback;
-  } catch {
-    return fallback;
-  }
-};
+const loadStoredJson = <T extends object,>(key: string, fallback: T): T =>
+  parseJsonOrFallback(localStorage.getItem(key), fallback);
 
 const loadStoredList = <T,>(key: string): T[] => {
   try {
@@ -361,15 +370,9 @@ export default function App() {
   
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.NORMAL);
   
-  const [avatar, setAvatar] = useState<AvatarConfig>(() => {
-    const saved = localStorage.getItem('brainRushAvatar');
-    return saved ? JSON.parse(saved) : { head: '😃', body: '👕', legs: '👖' };
-  });
+  const [avatar, setAvatar] = useState<AvatarConfig>(() => loadStoredJson('brainRushAvatar', DEFAULT_AVATAR));
 
-  const [tuning, setTuning] = useState<GameTuning>(() => {
-    const saved = localStorage.getItem('brainRushTuning');
-    return saved ? { ...DEFAULT_TUNING, ...JSON.parse(saved) } : DEFAULT_TUNING;
-  });
+  const [tuning, setTuning] = useState<GameTuning>(() => loadStoredJson('brainRushTuning', DEFAULT_TUNING));
   const [wordTuning, setWordTuning] = useState<WordTuning>(() => loadStoredJson(WORD_TUNING_STORAGE_KEY, DEFAULT_WORD_TUNING));
   const [mistakeBook, setMistakeBook] = useState<Record<SubjectMode, MistakeRecord[]>>(() => loadRecordsBySubject<MistakeRecord>(MISTAKE_STORAGE_KEYS));
   const [timedRunHistory, setTimedRunHistory] = useState<Record<SubjectMode, TimedRunRecord[]>>(() => loadRecordsBySubject<TimedRunRecord>(TIMED_RUN_STORAGE_KEYS));
