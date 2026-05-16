@@ -270,6 +270,24 @@ const parseJsonOrFallback = <T extends object,>(raw: string | null, fallback: T)
   }
 };
 
+const getMistakeKey = (mistake: MistakeRecord): string =>
+  `${mistake.subjectMode}:${mistake.questionText}:${mistake.correctAnswer}`;
+
+const mergeMistakeRecords = (incoming: MistakeRecord[], existing: MistakeRecord[], limit = 50): MistakeRecord[] => {
+  const seen = new Set<string>();
+  const merged: MistakeRecord[] = [];
+
+  [...incoming, ...existing].forEach((mistake) => {
+    const key = getMistakeKey(mistake);
+    if (seen.has(key)) return;
+
+    seen.add(key);
+    merged.push(mistake);
+  });
+
+  return merged.slice(0, limit);
+};
+
 const loadHighScores = (): Record<SubjectMode, number> => {
   const legacyHighScore = readStoredScore(LEGACY_HIGH_SCORE_KEY) ?? 0;
 
@@ -591,7 +609,7 @@ export default function App() {
     if (sessionMistakesRef.current.length > 0) {
       setMistakeBook(prev => ({
         ...prev,
-        [subjectMode]: [...sessionMistakesRef.current, ...prev[subjectMode]].slice(0, 30),
+        [subjectMode]: mergeMistakeRecords(sessionMistakesRef.current, prev[subjectMode]),
       }));
     }
 
@@ -700,28 +718,32 @@ export default function App() {
     );
   };
 
-  const renderMistakeList = (mistakes: MistakeRecord[]) => (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
-      <h3 className="text-sm font-bold text-white">{t.recentMistakes}</h3>
-      {mistakes.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-400">{t.noMistakes}</p>
-      ) : (
-        <div className="mt-3 space-y-3">
-          {mistakes.slice(0, 5).map(mistake => (
-            <div key={mistake.id} className="rounded-xl bg-white/5 p-3 text-sm text-slate-300">
-              <div className="font-bold text-white break-words">{mistake.questionText}</div>
-              <div className="mt-2">
-                {t.yourAnswer}: <span className="font-semibold text-amber-200 break-all">{mistake.selectedAnswer ?? t.missedAnswer}</span>
+  const renderMistakeList = (mistakes: MistakeRecord[], variant: 'dark' | 'light' = 'dark') => {
+    const isLight = variant === 'light';
+
+    return (
+      <div className={`rounded-2xl border p-4 text-left ${isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-black/20'}`}>
+        <h3 className={`text-sm font-bold ${isLight ? 'text-game-bg' : 'text-white'}`}>{t.recentMistakes}</h3>
+        {mistakes.length === 0 ? (
+          <p className={`mt-3 text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{t.noMistakes}</p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {mistakes.slice(0, 5).map(mistake => (
+              <div key={mistake.id} className={`rounded-xl p-3 text-sm ${isLight ? 'border border-slate-200 bg-white text-slate-600' : 'bg-white/5 text-slate-300'}`}>
+                <div className={`break-words font-bold ${isLight ? 'text-slate-950' : 'text-white'}`}>{mistake.questionText}</div>
+                <div className="mt-2">
+                  {t.yourAnswer}: <span className={`break-all font-semibold ${isLight ? 'text-amber-700' : 'text-amber-200'}`}>{mistake.selectedAnswer ?? t.missedAnswer}</span>
+                </div>
+                <div className="mt-1">
+                  {t.correctAnswer}: <span className={`break-all font-semibold ${isLight ? 'text-emerald-700' : 'text-emerald-300'}`}>{mistake.correctAnswer}</span>
+                </div>
               </div>
-              <div className="mt-1">
-                {t.correctAnswer}: <span className="font-semibold text-emerald-300 break-all">{mistake.correctAnswer}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderTimedBoard = () => (
     <div className="rounded-2xl border border-white/10 bg-slate-100 p-4 md:p-6 mt-4 text-left">
@@ -1443,7 +1465,7 @@ export default function App() {
               )}
             </div>
             {playMode === PlayMode.QUICK_60 && renderTimedBoard()}
-            {sessionMistakes.length > 0 && <div className="mt-4">{renderMistakeList(sessionMistakes)}</div>}
+            {sessionMistakes.length > 0 && <div className="mt-4">{renderMistakeList(sessionMistakes, 'light')}</div>}
 
             <button 
               onClick={playMode === PlayMode.QUICK_60 ? startQuickPractice : startGame}
