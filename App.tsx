@@ -75,6 +75,7 @@ const TRANSLATIONS = {
     timedBoardEmpty: 'No 60s runs saved yet.',
     boundaryTitle: 'What this game does',
     boundaryItems: ['Local data only', '60-second practice'],
+    seoDescription: 'Brain Rush is a 60-second math speed and English word reaction game for quick practice in calculation speed, word recognition, and attention. Scores, mistakes, and settings stay in your local browser.',
     productNote: 'Scores, avatar, tuning, mistakes, and timed runs stay in this browser.',
     feedback: 'Feedback',
     feedbackTitle: 'Suggest a fix',
@@ -162,6 +163,7 @@ const TRANSLATIONS = {
     timedBoardEmpty: '还没有保存的 60 秒成绩。',
     boundaryTitle: '这个游戏做什么',
     boundaryItems: ['数据只在本机', '60 秒练习'],
+    seoDescription: 'Brain Rush 是一个 60 秒数学速算和英语单词反应练习小游戏，适合用碎片时间练习计算速度、单词识别和注意力反应。成绩、错题和设置都只保存在本地浏览器。',
     productNote: '分数、外观、设置、错题和计时记录只保存在当前浏览器。',
     feedback: '反馈',
     feedbackTitle: '提建议 / 报错',
@@ -978,8 +980,11 @@ export default function App() {
             <h1 className="text-4xl md:text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
               {subjectMode === SubjectMode.WORD ? t.wordMode : t.title}
             </h1>
-            <p className="text-slate-300 text-base md:text-lg mb-4 font-medium">
+            <p className="text-slate-300 text-base md:text-lg mb-3 font-medium">
               {subjectMode === SubjectMode.WORD ? t.wordModeDescription : t.subtitle}
+            </p>
+            <p className="mx-auto mb-5 max-w-sm text-xs leading-5 text-slate-400 md:text-sm">
+              {t.seoDescription}
             </p>
 
             {/* Difficulty Selector */}
