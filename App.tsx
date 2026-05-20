@@ -3,6 +3,7 @@ import { animate } from 'animejs';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
 import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle, BookOpen } from 'lucide-react';
+import { QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
@@ -98,6 +99,18 @@ const TRANSLATIONS = {
     clearData: 'Clear local data',
     clearDataConfirm: 'Clear local Brain Rush data in this browser?',
     firstRunHint: 'Default: Math + Normal. Use Quick Mode for a low-pressure 60s run, or Advanced if you want to tune the questions.',
+    storyCta: 'Why I built this',
+    storyTitle: 'Why Brain Rush exists',
+    storyKicker: "A tiny experiment from a real kid's homework table.",
+    storyParagraphs: [
+      'Brain Rush started from a very ordinary scene: a primary school kid needs math drills and word practice, but practice books feel like punishment after a few minutes.',
+      'So I tried a smaller question: if the same drill became a 60-second dodge-and-catch game, would a child stay with it a little longer?',
+      'It is not trying to replace teachers, parents, or proper learning. It just turns quick arithmetic and word recognition into a short, fast-feedback round: catch the correct answer, dodge the wrong ones, finish before attention runs out.',
+    ],
+    storyBulletsTitle: 'Current version focuses on:',
+    storyBullets: ['60-second math speed practice', 'English word choice and sentence cloze', 'Adjustable difficulty and question tuning', 'Local-only scores, mistakes, and settings'],
+    storySeoNote: 'For parents and teachers: this is a lightweight browser game for primary-school math drills and English word practice. No login, no ads, no leaderboard pressure.',
+    storyClose: 'Back to game',
     dataExported: 'Brain Rush data exported.',
     dataCleared: 'Local Brain Rush data cleared.',
   },
@@ -187,6 +200,18 @@ const TRANSLATIONS = {
     clearData: '清除本机数据',
     clearDataConfirm: '清除这个浏览器里的 Brain Rush 本地数据？',
     firstRunHint: '默认：数学 + 普通难度。想低压力试一下，用 60 秒模式；想调题目，再进高级调节。',
+    storyCta: '为什么做这个？',
+    storyTitle: 'Brain Rush 是怎么来的',
+    storyKicker: '一个从真实小学生作业桌边长出来的小实验。',
+    storyParagraphs: [
+      'Brain Rush 最早不是一个“教育产品规划”，而是一个很普通的场景：小学生要练口算、记单词，但练习册做几分钟就像上刑。孩子坐不住，家长血压也不太稳。',
+      '所以我试了一个更小的问题：如果把同一件事变成 60 秒的躲避/接答案小游戏，孩子会不会愿意多练两轮？',
+      '它不想替代老师、家长或系统学习，只解决一个小问题：把基础口算和单词识别，变成短、快、有反馈的一局。接住正确答案，避开错误答案，在注意力耗尽之前结束。',
+    ],
+    storyBulletsTitle: '目前主要做这些：',
+    storyBullets: ['60 秒口算反应练习', '英语单词中英互选 + 句子填空', '难度与题目范围可调', '成绩、错题和设置只保存在本机'],
+    storySeoNote: '给家长和老师看的版本：这是一个面向小学生的数学速算与英语单词练习网页小游戏。无登录、无广告、无排行榜压力，打开就能试。',
+    storyClose: '回到游戏',
     dataExported: 'Brain Rush 数据已导出。',
     dataCleared: '本地 Brain Rush 数据已清除。',
   }
@@ -368,6 +393,8 @@ export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackClosing, setFeedbackClosing] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storyClosing, setStoryClosing] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
@@ -550,7 +577,7 @@ export default function App() {
   };
 
   const handleAmbientPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (gameState !== GameState.MENU || feedbackOpen || menuView !== 'main') return;
+    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || menuView !== 'main') return;
     if (event.pointerType !== 'mouse') return;
 
     const now = window.performance.now();
@@ -561,7 +588,7 @@ export default function App() {
   };
 
   const handleAmbientPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (gameState !== GameState.MENU || feedbackOpen || menuView !== 'main') return;
+    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || menuView !== 'main') return;
     fireConfettiAt(event.clientX, event.clientY, event.pointerType === 'mouse' ? 0.85 : 1.05);
   };
 
@@ -798,6 +825,19 @@ export default function App() {
     }, TRANSITION_MS);
   };
 
+  const openStory = () => {
+    setStoryClosing(false);
+    setStoryOpen(true);
+  };
+
+  const closeStory = () => {
+    setStoryClosing(true);
+    window.setTimeout(() => {
+      setStoryOpen(false);
+      setStoryClosing(false);
+    }, TRANSITION_MS);
+  };
+
   const submitFeedback = async () => {
     const message = feedbackText.trim();
     if (!message) return;
@@ -861,6 +901,15 @@ export default function App() {
       {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
         <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2 sm:left-auto sm:right-6 sm:justify-end">
           <button
+            type="button"
+            onClick={openStory}
+            className="flex items-center gap-2 rounded-full border border-cyan-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-cyan-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-cyan-200/50 hover:bg-slate-900/85 hover:text-white"
+            aria-label={t.storyCta}
+          >
+            <QuestionMarkCircleIcon className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">{t.storyCta}</span>
+          </button>
+          <button
             onClick={openFeedback}
             className="flex items-center gap-2 rounded-full border border-amber-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-amber-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-amber-200/50 hover:bg-slate-900/85 hover:text-white"
           >
@@ -888,6 +937,55 @@ export default function App() {
             >
               中
             </button>
+          </div>
+        </div>
+      )}
+
+      {storyOpen && (
+        <div
+          className={`absolute inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-20 backdrop-blur-md ${storyClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="brain-rush-story-title"
+          onClick={closeStory}
+        >
+          <div
+            className={`w-full max-w-2xl rounded-[1.75rem] border border-cyan-100/15 bg-[#171421] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.46)] md:p-7 ${storyClosing ? 'animate-pop-out' : 'animate-pop-in'}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200/75">{t.storyKicker}</p>
+                <h2 id="brain-rush-story-title" className="mt-2 text-2xl font-black text-white md:text-3xl">{t.storyTitle}</h2>
+              </div>
+              <button onClick={closeStory} aria-label={t.storyClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white">
+                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="mt-5 space-y-4 text-sm leading-7 text-slate-300 md:text-base">
+              {t.storyParagraphs.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <h3 className="text-sm font-black text-white">{t.storyBulletsTitle}</h3>
+              <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-300 sm:grid-cols-2">
+                {t.storyBullets.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-300" aria-hidden="true"></span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="mt-5 rounded-2xl border border-amber-200/15 bg-amber-200/10 p-4 text-sm font-bold leading-6 text-amber-50/90">
+              {t.storySeoNote}
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button onClick={closeStory} className="rounded-full bg-cyan-300 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-cyan-200">
+                {t.storyClose}
+              </button>
+            </div>
           </div>
         </div>
       )}
