@@ -11,6 +11,7 @@ type Language = 'en' | 'zh';
 const PEP_WORDS_URL = 'https://pep-words.lizliz.xyz';
 const TRANSITION_MS = 220;
 const CONFETTI_COLORS = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#34d399', '#fb7185'];
+const TOUCH_TOOLTIP_MS = 1800;
 
 const TRANSLATIONS = {
   en: {
@@ -100,16 +101,24 @@ const TRANSLATIONS = {
     clearDataConfirm: 'Clear local Brain Rush data in this browser?',
     firstRunHint: 'Default: Math + Normal. Use Quick Mode for a low-pressure 60s run, or Advanced if you want to tune the questions.',
     storyCta: 'Why I built this',
-    storyTitle: 'Why Brain Rush exists',
-    storyKicker: "A tiny experiment from a real kid's homework table.",
+    storyTitle: 'My brother wanted mental math as a plane-shooter game, so I actually built it',
+    storyKicker: 'A real kid, a messy idea, and a small build-in-public test.',
     storyParagraphs: [
-      'Brain Rush started from a very ordinary scene: a primary school kid needs math drills and word practice, but practice books feel like punishment after a few minutes.',
-      'So I tried a smaller question: if the same drill became a 60-second dodge-and-catch game, would a child stay with it a little longer?',
-      'It is not trying to replace teachers, parents, or proper learning. It just turns quick arithmetic and word recognition into a short, fast-feedback round: catch the correct answer, dodge the wrong ones, finish before attention runs out.',
+      'A while ago, my 10-year-old brother gave me a fuzzy idea: could mental math become a little game? Like a plane shooter, answers fall from the sky, and he catches the right ones while dodging the wrong ones.',
+      'He said it in a chaotic kid way, without product words or educational jargon. But I understood the real request: if he has to practice mental math anyway, can it be more fun?',
+      'That hit me. Basic drills are not the enemy. Mental math needs practice. Words need memorizing. The problem is that repetitive dry practice can drive both kids and parents nuts: the child cannot sit still, the parent’s blood pressure climbs, and whether the skill improves is unclear while the parent-child relationship loses a few HP.',
+      'So I turned the idea into a browser mini-game called Brain Rush. Not an education platform. No login streaks, ranking pressure, membership popups, or that whole circus.',
+      'Kids see a game: catch the right answer, dodge the wrong one, chase the score, switch avatars. Parents and teachers care about the result: how many questions were practiced, what the accuracy was, whether speed improved, and whether the kid wants another round.',
+      'There are two small math modes right now: a 60-second quick practice with no setup, and an adjustable practice mode where operations, number ranges, remainders, and negatives can be tuned for targeted drills.',
+      'I also added an English word mode, Word Speedrun, with Chinese-English choices and sentence cloze.',
+      'But I am still not sure whether this is a real need. It may be far from something parents love or teachers recommend, so I want real user feedback.',
+      'If you are a primary-school parent or teacher, I want to hear the blunt version: would you let a child use a mini-game like this for math or vocabulary practice? Would you worry it becomes “only wants to play, not practice”? Do you care more about accuracy, speed, or consistency? How many minutes per day would feel right, not burdensome? If you do not need it at all, say that too.',
+      'If it is a fake need, I will treat it as a half-abandoned little project from the warehouse, tidy it up, and move on. If it can help some parents yell a little less and help some kids practice a few more questions, I will keep polishing it.',
+      'The thing I most want to confirm is simple: can development actually serve specific people?',
     ],
-    storyBulletsTitle: 'Current version focuses on:',
-    storyBullets: ['60-second math speed practice', 'English word choice and sentence cloze', 'Adjustable difficulty and question tuning', 'Local-only scores, mistakes, and settings'],
-    storySeoNote: 'For parents and teachers: this is a lightweight browser game for primary-school math drills and English word practice. No login, no ads, no leaderboard pressure.',
+    storyBulletsTitle: 'I especially want feedback on:',
+    storyBullets: ['Child reaction after trying it', 'Parent concerns', 'What teachers think is missing', 'Whether a specific piece of feedback should enter the next version'],
+    storySeoNote: 'Real critique is welcome. If one piece of your feedback becomes a feature, that means this is not just me entertaining myself 🤪',
     storyClose: 'Back to game',
     dataExported: 'Brain Rush data exported.',
     dataCleared: 'Local Brain Rush data cleared.',
@@ -201,16 +210,25 @@ const TRANSLATIONS = {
     clearDataConfirm: '清除这个浏览器里的 Brain Rush 本地数据？',
     firstRunHint: '默认：数学 + 普通难度。想低压力试一下，用 60 秒模式；想调题目，再进高级调节。',
     storyCta: '为什么做这个？',
-    storyTitle: 'Brain Rush 是怎么来的',
-    storyKicker: '一个从真实小学生作业桌边长出来的小实验。',
+    storyTitle: '我弟想把口算做成飞机大战，真给他做出来了',
+    storyKicker: '一个真实小学生、一个乱糟糟的 idea，和一次 Build In Public。',
     storyParagraphs: [
-      'Brain Rush 最早不是一个“教育产品规划”，而是一个很普通的场景：小学生要练口算、记单词，但练习册做几分钟就像上刑。孩子坐不住，家长血压也不太稳。',
-      '所以我试了一个更小的问题：如果把同一件事变成 60 秒的躲避/接答案小游戏，孩子会不会愿意多练两轮？',
-      '它不想替代老师、家长或系统学习，只解决一个小问题：把基础口算和单词识别，变成短、快、有反馈的一局。接住正确答案，避开错误答案，在注意力耗尽之前结束。',
+      '之前家里 10 岁弟弟跟我提过一个模糊的 idea，大概意思是：能不能把口算题做成小游戏？像飞机大战一样，答案从天上掉下来，他去接对的、躲错的。',
+      '他说得挺乱，小学生也不会啥什么专业大词。但我当时听懂了他想要的是：同样是练口算，能不能更好玩？',
+      '这点我挺有感触：基础练习本身没错。口算要练，单词要背。问题是，太重复、太干，容易把孩子和家长一起逼疯。孩子坐不住，家长血压升。最后练没练好不好说，亲子关系先扣几格血🥵。',
+      '所以后来我把想法做成了一个网页小游戏，叫 BrainRush，头脑冲刺。没做“教育平台”，没登录打卡、排行榜、会员弹窗那一套。',
+      '孩子看到的是游戏：接对、躲错、冲分、换角色。而家长和老师真正关心的是结果：练了多少题，正确率怎么样，速度有没有提高，孩子愿不愿意再来一局。',
+      '当前两个小模式：1）60 秒快速练习。不用调设置。一局只有 60 秒，孩子不会觉得“又要开始漫长受刑”。结束后能看到正确率、答题量。这个模式适合快速刷一轮。',
+      '2）可调练习模式。这个更偏定制。可选加减乘除、数字范围，连余数/负数也能开关。比起漫无目的地玩，更像针对某一类题练。比如最近 20 内退位除法老错，那就只练这个。',
+      '现在还加了英语单词模式（Word Speedrun）：中英互译、句子填空。',
+      '但我还不确定它算不算【真需求】，离“家长爱用、老师推荐”可能还差得远，所以想听听真实用户的想法。',
+      '如果你是小学生家长，或者老师，我想跟你聊聊：你愿意让孩子用这种小游戏练口算/单词吗？会担心它变成“只想玩，不想练”吗？你更关心正确率、速度，还是稳定性？每天玩几分钟，你会觉得刚好，不算负担？如果你完全不需要，也可以直接说：没必要。',
+      '如果是假需求，我就把它当成个从仓库里翻出来的半废弃小项目，收一收，继续练。如果它确实能帮某些家长少吼两句，帮孩子多练几题，那就继续把它打磨好。',
+      '最想确认的是：能不能通过开发，真的服务到具体的人。链接放评论区。欢迎真实拍砖。孩子试玩后的反应、家长的顾虑、老师觉得缺什么，都可以说。如果你的一条反馈进了下一版功能，那就说明这真的不是我自嗨了 🤪',
     ],
-    storyBulletsTitle: '目前主要做这些：',
-    storyBullets: ['60 秒口算反应练习', '英语单词中英互选 + 句子填空', '难度与题目范围可调', '成绩、错题和设置只保存在本机'],
-    storySeoNote: '给家长和老师看的版本：这是一个面向小学生的数学速算与英语单词练习网页小游戏。无登录、无广告、无排行榜压力，打开就能试。',
+    storyBulletsTitle: '想听到的真实反馈：',
+    storyBullets: ['孩子试玩后的反应', '家长的顾虑', '老师觉得缺什么', '什么反馈值得进下一版功能'],
+    storySeoNote: '#小学数学 #口算训练 #小学英语 #记单词 #小学生作业 #辅导作业 #教育游戏 #家长辅导 #小学老师 #英语老师 #学习工具 #BuildInPublic',
     storyClose: '回到游戏',
     dataExported: 'Brain Rush 数据已导出。',
     dataCleared: '本地 Brain Rush 数据已清除。',
@@ -346,7 +364,7 @@ const loadRecordsBySubject = <T,>(keys: Record<SubjectMode, string>): Record<Sub
 const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
   if (typeof document === 'undefined') return;
 
-  const particleCount = Math.max(6, Math.round(16 * intensity));
+  const particleCount = Math.max(10, Math.round(26 * intensity));
   const root = document.createElement('div');
   root.setAttribute('aria-hidden', 'true');
   root.className = 'pointer-events-none fixed left-0 top-0 z-[70] h-0 w-0 overflow-visible';
@@ -355,25 +373,25 @@ const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
 
   const particles = Array.from({ length: particleCount }, (_, index) => {
     const particle = document.createElement('span');
-    const size = 5 + Math.random() * 6;
-    particle.className = 'absolute block rounded-[2px] opacity-95';
+    const size = 3 + Math.random() * 7;
+    particle.className = 'absolute block rounded-full opacity-95 blur-[0.2px]';
     particle.style.width = `${size}px`;
-    particle.style.height = `${size * (0.65 + Math.random() * 0.6)}px`;
+    particle.style.height = `${size}px`;
     particle.style.background = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
-    particle.style.transform = `translate3d(-50%, -50%, 0) rotate(${Math.random() * 180}deg)`;
+    particle.style.boxShadow = `0 0 ${8 + Math.random() * 14}px ${CONFETTI_COLORS[index % CONFETTI_COLORS.length]}`;
+    particle.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
     root.appendChild(particle);
     return particle;
   });
 
   animate(particles, {
-    x: () => (Math.random() - 0.5) * 130 * intensity,
-    y: () => -30 - Math.random() * 70 * intensity,
-    rotate: () => Math.random() * 520 - 260,
-    scale: [1, 0.25],
+    x: () => (Math.random() - 0.5) * 240 * intensity,
+    y: () => (Math.random() - 0.55) * 210 * intensity,
+    scale: [1.15, 0.15],
     opacity: [1, 0],
-    duration: () => 420 + Math.random() * 360,
-    delay: (_target, index) => index * 7,
-    ease: 'outQuad',
+    duration: () => 520 + Math.random() * 420,
+    delay: (_target, index) => index * 5,
+    ease: 'outExpo',
     onComplete: () => root.remove(),
   });
 };
@@ -399,7 +417,9 @@ export default function App() {
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
   const [wechatQrReady, setWechatQrReady] = useState(true);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const lastPointerConfettiRef = useRef(0);
+  const touchTooltipRef = useRef({ key: '', shownAt: 0 });
   
   const t = TRANSLATIONS[lang];
 
@@ -576,20 +596,42 @@ export default function App() {
     setSessionMistakes(nextMistakes);
   };
 
-  const handleAmbientPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || menuView !== 'main') return;
-    if (event.pointerType !== 'mouse') return;
+  const isFinePointer = () =>
+    typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  const shouldRunTooltipAction = (key: string, event: React.MouseEvent<HTMLElement>) => {
+    if (isFinePointer()) return true;
 
     const now = window.performance.now();
-    if (now - lastPointerConfettiRef.current < 260) return;
+    const isSecondTap = touchTooltipRef.current.key === key && now - touchTooltipRef.current.shownAt < TOUCH_TOOLTIP_MS;
+    if (isSecondTap) return true;
+
+    event.preventDefault();
+    event.stopPropagation();
+    touchTooltipRef.current = { key, shownAt: now };
+    setActiveTooltip(key);
+    window.setTimeout(() => {
+      if (touchTooltipRef.current.key === key && window.performance.now() - touchTooltipRef.current.shownAt >= TOUCH_TOOLTIP_MS - 50) {
+        setActiveTooltip(current => (current === key ? null : current));
+      }
+    }, TOUCH_TOOLTIP_MS);
+    return false;
+  };
+
+  const handleAmbientPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || menuView !== 'main') return;
+
+    const now = window.performance.now();
+    const interval = event.pointerType === 'mouse' ? 170 : 230;
+    if (now - lastPointerConfettiRef.current < interval) return;
 
     lastPointerConfettiRef.current = now;
-    fireConfettiAt(event.clientX, event.clientY, 0.42);
+    fireConfettiAt(event.clientX, event.clientY, event.pointerType === 'mouse' ? 0.52 : 0.46);
   };
 
   const handleAmbientPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (gameState !== GameState.MENU || feedbackOpen || storyOpen || menuView !== 'main') return;
-    fireConfettiAt(event.clientX, event.clientY, event.pointerType === 'mouse' ? 0.85 : 1.05);
+    fireConfettiAt(event.clientX, event.clientY, event.pointerType === 'mouse' ? 1.05 : 0.9);
   };
 
   const startGame = () => {
@@ -902,26 +944,47 @@ export default function App() {
         <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2 sm:left-auto sm:right-6 sm:justify-end">
           <button
             type="button"
-            onClick={openStory}
-            className="flex items-center gap-2 rounded-full border border-cyan-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-cyan-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-cyan-200/50 hover:bg-slate-900/85 hover:text-white"
+            onClick={(event) => {
+              if (shouldRunTooltipAction('story-top', event)) openStory();
+            }}
+            onMouseEnter={() => setActiveTooltip('story-top')}
+            onMouseLeave={() => setActiveTooltip(current => (current === 'story-top' ? null : current))}
+            onFocus={() => setActiveTooltip('story-top')}
+            onBlur={() => setActiveTooltip(current => (current === 'story-top' ? null : current))}
+            className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/25 bg-slate-950/70 text-cyan-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-cyan-200/50 hover:bg-slate-900/85 hover:text-white"
             aria-label={t.storyCta}
           >
-            <QuestionMarkCircleIcon className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t.storyCta}</span>
+            <QuestionMarkCircleIcon className="h-5 w-5" aria-hidden="true" />
+            <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-cyan-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-cyan-50 shadow-2xl transition ${activeTooltip === 'story-top' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>{t.storyCta}</span>
           </button>
           <button
-            onClick={openFeedback}
-            className="flex items-center gap-2 rounded-full border border-amber-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-amber-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-amber-200/50 hover:bg-slate-900/85 hover:text-white"
+            onClick={(event) => {
+              if (shouldRunTooltipAction('feedback', event)) openFeedback();
+            }}
+            onMouseEnter={() => setActiveTooltip('feedback')}
+            onMouseLeave={() => setActiveTooltip(current => (current === 'feedback' ? null : current))}
+            onFocus={() => setActiveTooltip('feedback')}
+            onBlur={() => setActiveTooltip(current => (current === 'feedback' ? null : current))}
+            className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-amber-200/25 bg-slate-950/70 text-amber-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-amber-200/50 hover:bg-slate-900/85 hover:text-white"
+            aria-label={t.feedback}
           >
-            <MessageCircle size={14} />
-            {t.feedback}
+            <MessageCircle size={17} />
+            <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-amber-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-amber-50 shadow-2xl transition ${activeTooltip === 'feedback' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>{t.feedback}</span>
           </button>
           <a
             href={PEP_WORDS_URL}
-            className="flex items-center gap-2 rounded-full border border-emerald-200/25 bg-slate-950/70 px-3 py-2 text-xs font-bold text-emerald-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all duration-[220ms] ease-out hover:-translate-y-0.5 hover:border-emerald-200/50 hover:bg-slate-900/85 hover:text-white"
+            onClick={(event) => {
+              if (!shouldRunTooltipAction('pep-words', event)) return;
+            }}
+            onMouseEnter={() => setActiveTooltip('pep-words')}
+            onMouseLeave={() => setActiveTooltip(current => (current === 'pep-words' ? null : current))}
+            onFocus={() => setActiveTooltip('pep-words')}
+            onBlur={() => setActiveTooltip(current => (current === 'pep-words' ? null : current))}
+            className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-emerald-200/25 bg-slate-950/70 text-emerald-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all duration-[220ms] ease-out hover:-translate-y-0.5 hover:border-emerald-200/50 hover:bg-slate-900/85 hover:text-white"
+            aria-label="PEP Words"
           >
-            <BookOpen size={14} />
-            PEP Words
+            <BookOpen size={17} />
+            <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-emerald-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-emerald-50 shadow-2xl transition ${activeTooltip === 'pep-words' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>PEP Words</span>
           </a>
           <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/40 p-1 shadow-lg backdrop-blur-md">
             <Languages size={13} className="ml-2 text-white/55" />
@@ -1152,12 +1215,33 @@ export default function App() {
               </div>
             </div>
             <div className="mb-6 flex justify-center">
-              <img
-                src="/brain-rush-icon.svg"
-                alt=""
-                aria-hidden="true"
-                className="h-20 w-20 rounded-[1.5rem] shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] md:h-24 md:w-24"
-              />
+              <button
+                type="button"
+                onClick={(event) => {
+                  if (shouldRunTooltipAction('logo-seo', event)) setActiveTooltip(current => (current === 'logo-seo' ? null : 'logo-seo'));
+                }}
+                onMouseEnter={() => setActiveTooltip('logo-seo')}
+                onMouseLeave={() => setActiveTooltip(current => (current === 'logo-seo' ? null : current))}
+                onFocus={() => setActiveTooltip('logo-seo')}
+                onBlur={() => setActiveTooltip(current => (current === 'logo-seo' ? null : current))}
+                className="group/seo relative rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
+                aria-label={t.seoLabel}
+                aria-describedby="brain-rush-seo-description"
+              >
+                <img
+                  src="/brain-rush-icon.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-20 w-20 rounded-[1.5rem] shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] transition duration-200 hover:scale-105 md:h-24 md:w-24"
+                />
+                <p
+                  id="brain-rush-seo-description"
+                  className={`pointer-events-none absolute left-1/2 top-[calc(100%+0.7rem)] z-40 w-[min(20rem,78vw)] -translate-x-1/2 rounded-2xl border border-white/10 bg-slate-950/95 p-3 text-xs leading-5 text-slate-200 shadow-2xl transition duration-150 ${activeTooltip === 'logo-seo' ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
+                >
+                  <span className="mb-1 block font-black text-white">{t.seoLabel}</span>
+                  {t.seoDescription}
+                </p>
+              </button>
             </div>
             
             <h1 className="text-4xl md:text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
@@ -1166,22 +1250,6 @@ export default function App() {
             <p className="text-slate-300 text-base md:text-lg mb-3 font-medium">
               {subjectMode === SubjectMode.WORD ? t.wordModeDescription : t.subtitle}
             </p>
-            <div className="group/seo relative mx-auto mb-5 inline-flex max-w-sm flex-col items-center">
-              <button
-                type="button"
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-black text-slate-300 transition hover:border-cyan-300/40 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
-                aria-describedby="brain-rush-seo-description"
-              >
-                {t.seoLabel}
-              </button>
-              <p
-                id="brain-rush-seo-description"
-                className="pointer-events-none absolute left-1/2 top-[calc(100%+0.55rem)] z-40 w-[min(20rem,78vw)] -translate-x-1/2 translate-y-1 rounded-2xl border border-white/10 bg-slate-950/95 p-3 text-xs leading-5 text-slate-200 opacity-0 shadow-2xl transition duration-150 group-hover/seo:translate-y-0 group-hover/seo:opacity-100 group-focus-within/seo:translate-y-0 group-focus-within/seo:opacity-100"
-              >
-                {t.seoDescription}
-              </p>
-            </div>
-
             {/* Difficulty Selector */}
             <div className="mb-8">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{t.difficulty}</h3>

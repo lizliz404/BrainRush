@@ -435,17 +435,18 @@ const GameEngine: React.FC<GameEngineProps> = ({
           maxLife: 800
         });
         
-        for(let i=0; i<12; i++) {
+        for(let i=0; i<18; i++) {
+          const burst = 1 + Math.random() * 1.35;
           effectsRef.current.push({
             id: Math.random(),
             type: 'particle',
             color: '#22c55e',
             x: bx,
             y: blockBottom,
-            vx: (Math.random() - 0.5) * 8,
-            vy: (Math.random() - 0.5) * 8 - 2,
-            life: 400 + Math.random() * 400,
-            maxLife: 800
+            vx: (Math.random() - 0.5) * 13 * burst,
+            vy: (Math.random() - 0.65) * 12 * burst - 3,
+            life: 520 + Math.random() * 520,
+            maxLife: 1040
           });
         }
 
@@ -465,17 +466,18 @@ const GameEngine: React.FC<GameEngineProps> = ({
         }
         
         // Error Effects
-        for(let i=0; i<20; i++) {
+        for(let i=0; i<30; i++) {
+          const burst = 1 + Math.random() * 1.25;
           effectsRef.current.push({
             id: Math.random(),
             type: 'particle',
             color: '#ef4444',
             x: px,
             y: headY,
-            vx: (Math.random() - 0.5) * 12,
-            vy: (Math.random() - 0.5) * 12 - 4,
-            life: 600 + Math.random() * 600,
-            maxLife: 1200
+            vx: (Math.random() - 0.5) * 18 * burst,
+            vy: (Math.random() - 0.58) * 17 * burst - 5,
+            life: 720 + Math.random() * 720,
+            maxLife: 1440
           });
         }
 
