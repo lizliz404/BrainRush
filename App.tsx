@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { animate } from 'animejs';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
+import BrainRushLogoIcon from './components/BrainRushLogoIcon';
 import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, MessageCircle } from 'lucide-react';
 import { ArrowLeftStartOnRectangleIcon, BookOpenIcon, LanguageIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
@@ -34,40 +35,6 @@ const PARTICLE_CONFIG = {
   },
   staggerMs: 5,
 } as const;
-
-const BrainRushLogoIcon = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 128 128" fill="none" aria-hidden="true">
-    <defs>
-      <linearGradient id="brain-rush-logo-tile" x1="18" y1="16" x2="110" y2="112" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stopColor="#22d3ee" />
-        <stop offset="0.56" stopColor="#6366f1" />
-        <stop offset="1" stopColor="#a855f7" />
-      </linearGradient>
-      <radialGradient id="brain-rush-logo-glow" cx="50%" cy="45%" r="60%">
-        <stop offset="0" stopColor="#ffffff" stopOpacity="0.34" />
-        <stop offset="0.42" stopColor="#67e8f9" stopOpacity="0.16" />
-        <stop offset="1" stopColor="#111827" stopOpacity="0" />
-      </radialGradient>
-    </defs>
-    <rect x="14" y="14" width="100" height="100" rx="28" fill="url(#brain-rush-logo-tile)" />
-    <rect x="14" y="14" width="100" height="100" rx="28" fill="url(#brain-rush-logo-glow)" />
-    <g stroke="#f8fafc" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M48 38c-9 0-16 7-16 16 0 5 2 9 6 12-4 3-6 7-6 12 0 9 7 16 16 16 7 0 13-4 15-10V48c-2-6-8-10-15-10Z" />
-      <path d="M80 38c9 0 16 7 16 16 0 5-2 9-6 12 4 3 6 7 6 12 0 9-7 16-16 16-7 0-13-4-15-10V48c2-6 8-10 15-10Z" />
-      <path d="M64 48v36" />
-      <path d="M43 56h14" />
-      <path d="M71 56h14" />
-      <path d="M43 75h14" />
-      <path d="M71 75h14" />
-    </g>
-    <g fill="#fef3c7">
-      <circle cx="42" cy="56" r="3.2" />
-      <circle cx="86" cy="56" r="3.2" />
-      <circle cx="42" cy="75" r="3.2" />
-      <circle cx="86" cy="75" r="3.2" />
-    </g>
-  </svg>
-);
 
 const PepWordsLogoIcon = ({ className = '' }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
