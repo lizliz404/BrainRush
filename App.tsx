@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { animate } from 'animejs';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, MessageCircle, BookOpen } from 'lucide-react';
-import { ArrowLeftStartOnRectangleIcon, LanguageIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, MessageCircle } from 'lucide-react';
+import { ArrowLeftStartOnRectangleIcon, BookOpenIcon, LanguageIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
@@ -12,6 +12,16 @@ const PEP_WORDS_URL = 'https://pep-words.lizliz.xyz';
 const TRANSITION_MS = 220;
 const CONFETTI_COLORS = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#34d399', '#fb7185'];
 const TOUCH_TOOLTIP_MS = 1800;
+
+const PepWordsLogoIcon = ({ className = '' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4.5 1.5C4.5 3.15 3.15 4.5 1.5 4.5C3.15 4.5 4.5 5.85 4.5 7.5C4.5 5.85 5.85 4.5 7.5 4.5C5.85 4.5 4.5 3.15 4.5 1.5Z" fill="currentColor" stroke="none" />
+    <path d="M21 18.5C21 19.33 20.33 20 19.5 20C20.33 20 21 20.67 21 21.5C21 20.67 21.67 20 22.5 20C21.67 20 21 19.33 21 18.5Z" fill="currentColor" stroke="none" />
+    <path d="M9 9V6.5A2.5 2.5 0 0 1 11.5 4h8A2.5 2.5 0 0 1 22 6.5v8A2.5 2.5 0 0 1 19.5 17H18" />
+    <rect x="5" y="9" width="13" height="13" rx="2.5" />
+    <path d="M7.5 13.5L9.5 17.5L11.5 13.5L13.5 17.5L15.5 13.5" />
+  </svg>
+);
 
 const TRANSLATIONS = {
   en: {
@@ -419,6 +429,8 @@ export default function App() {
   const [feedbackClosing, setFeedbackClosing] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [storyClosing, setStoryClosing] = useState(false);
+  const [mistakesOpen, setMistakesOpen] = useState(false);
+  const [mistakesClosing, setMistakesClosing] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
@@ -625,7 +637,7 @@ export default function App() {
   };
 
   const handleAmbientPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || menuView !== 'main') return;
+    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || mistakesOpen || menuView !== 'main') return;
 
     const now = window.performance.now();
     const interval = event.pointerType === 'mouse' ? 170 : 230;
@@ -636,7 +648,7 @@ export default function App() {
   };
 
   const handleAmbientPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || menuView !== 'main') return;
+    if (gameState !== GameState.MENU || feedbackOpen || storyOpen || mistakesOpen || menuView !== 'main') return;
     fireConfettiAt(event.clientX, event.clientY, event.pointerType === 'mouse' ? 1.05 : 0.9);
   };
 
@@ -899,6 +911,19 @@ export default function App() {
     }, TRANSITION_MS);
   };
 
+  const openMistakes = () => {
+    setMistakesClosing(false);
+    setMistakesOpen(true);
+  };
+
+  const closeMistakes = () => {
+    setMistakesClosing(true);
+    window.setTimeout(() => {
+      setMistakesOpen(false);
+      setMistakesClosing(false);
+    }, TRANSITION_MS);
+  };
+
   const exitGame = () => {
     setGameState(GameState.MENU);
     setMenuView('main');
@@ -977,7 +1002,23 @@ export default function App() {
 
       {/* Top Actions */}
       {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
-        <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2 sm:left-auto sm:right-6 sm:justify-end">
+        <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2">
+          <a
+            href={PEP_WORDS_URL}
+            onClick={(event) => {
+              if (!shouldRunTooltipAction('pep-words', event)) return;
+            }}
+            onMouseEnter={() => setActiveTooltip('pep-words')}
+            onMouseLeave={() => setActiveTooltip(current => (current === 'pep-words' ? null : current))}
+            onFocus={() => setActiveTooltip('pep-words')}
+            onBlur={() => setActiveTooltip(current => (current === 'pep-words' ? null : current))}
+            className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-sky-200/25 bg-slate-950/70 text-sky-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all duration-[220ms] ease-out hover:-translate-y-0.5 hover:border-sky-200/50 hover:bg-slate-900/85 hover:text-white"
+            aria-label="PEP Words"
+          >
+            <PepWordsLogoIcon className="h-5 w-5" />
+            <span className={`pointer-events-none absolute left-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-sky-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-sky-50 shadow-2xl transition ${activeTooltip === 'pep-words' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>PEP Words</span>
+          </a>
+          <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={(event) => {
@@ -1007,21 +1048,19 @@ export default function App() {
             <MessageCircle size={17} />
             <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-amber-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-amber-50 shadow-2xl transition ${activeTooltip === 'feedback' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>{t.feedback}</span>
           </button>
-          <a
-            href={PEP_WORDS_URL}
-            onClick={(event) => {
-              if (!shouldRunTooltipAction('pep-words', event)) return;
-            }}
-            onMouseEnter={() => setActiveTooltip('pep-words')}
-            onMouseLeave={() => setActiveTooltip(current => (current === 'pep-words' ? null : current))}
-            onFocus={() => setActiveTooltip('pep-words')}
-            onBlur={() => setActiveTooltip(current => (current === 'pep-words' ? null : current))}
-            className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-emerald-200/25 bg-slate-950/70 text-emerald-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all duration-[220ms] ease-out hover:-translate-y-0.5 hover:border-emerald-200/50 hover:bg-slate-900/85 hover:text-white"
-            aria-label="PEP Words"
+          <button
+            type="button"
+            onClick={openMistakes}
+            onMouseEnter={() => setActiveTooltip('mistakes')}
+            onMouseLeave={() => setActiveTooltip(current => (current === 'mistakes' ? null : current))}
+            onFocus={() => setActiveTooltip('mistakes')}
+            onBlur={() => setActiveTooltip(current => (current === 'mistakes' ? null : current))}
+            className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-violet-200/25 bg-slate-950/70 text-violet-50/85 shadow-[0_18px_48px_rgba(0,0,0,0.26)] backdrop-blur-md transition-all hover:border-violet-200/50 hover:bg-slate-900/85 hover:text-white"
+            aria-label={t.recentMistakes}
           >
-            <BookOpen size={17} />
-            <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-emerald-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-emerald-50 shadow-2xl transition ${activeTooltip === 'pep-words' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>PEP Words</span>
-          </a>
+            <BookOpenIcon className="h-5 w-5" aria-hidden="true" />
+            <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-violet-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-violet-50 shadow-2xl transition ${activeTooltip === 'mistakes' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>{t.recentMistakes}</span>
+          </button>
           <button
             type="button"
             onClick={() => setLang(current => (current === 'en' ? 'zh' : 'en'))}
@@ -1035,6 +1074,7 @@ export default function App() {
             <LanguageIcon className="h-5 w-5" aria-hidden="true" />
             <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-white/15 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-white shadow-2xl transition ${activeTooltip === 'language' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>{t.switchLanguage}</span>
           </button>
+          </div>
         </div>
       )}
 
@@ -1158,6 +1198,34 @@ export default function App() {
         </div>
       )}
 
+      {mistakesOpen && (
+        <div
+          className={`absolute inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/55 px-4 py-20 backdrop-blur-md ${mistakesClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="brain-rush-mistakes-title"
+          onClick={closeMistakes}
+        >
+          <div
+            className={`w-full max-w-2xl rounded-[1.75rem] border border-violet-100/15 bg-[#171421] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.46)] md:p-7 ${mistakesClosing ? 'animate-pop-out' : 'animate-pop-in'}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-200/75">{subjectMode === SubjectMode.WORD ? t.wordMode : t.mathMode}</p>
+                <h2 id="brain-rush-mistakes-title" className="mt-2 text-2xl font-black text-white md:text-3xl">{t.recentMistakes}</h2>
+              </div>
+              <button onClick={closeMistakes} aria-label={t.feedbackClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white">
+                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="mt-5">
+              {renderMistakeList(currentMistakes)}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Game Layer */}
       <div className="relative z-10 w-full h-full">
         <GameEngine 
@@ -1258,38 +1326,39 @@ export default function App() {
               </div>
             </div>
             <div className="mb-6 flex justify-center">
+              <img
+                src="/brain-rush-icon.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-20 w-20 rounded-[1.5rem] shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] md:h-24 md:w-24"
+              />
+            </div>
+            <div className="relative mb-2 inline-flex justify-center">
               <button
                 type="button"
                 onClick={(event) => {
-                  if (shouldRunTooltipAction('logo-seo', event)) setActiveTooltip(current => (current === 'logo-seo' ? null : 'logo-seo'));
+                  if (shouldRunTooltipAction('title-seo', event)) setActiveTooltip(current => (current === 'title-seo' ? null : 'title-seo'));
                 }}
-                onMouseEnter={() => setActiveTooltip('logo-seo')}
-                onMouseLeave={() => setActiveTooltip(current => (current === 'logo-seo' ? null : current))}
-                onFocus={() => setActiveTooltip('logo-seo')}
-                onBlur={() => setActiveTooltip(current => (current === 'logo-seo' ? null : current))}
-                className="group/seo relative rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
+                onMouseEnter={() => setActiveTooltip('title-seo')}
+                onMouseLeave={() => setActiveTooltip(current => (current === 'title-seo' ? null : current))}
+                onFocus={() => setActiveTooltip('title-seo')}
+                onBlur={() => setActiveTooltip(current => (current === 'title-seo' ? null : current))}
+                className="focus:outline-none focus:ring-4 focus:ring-cyan-300/20 rounded-2xl"
                 aria-label={t.seoLabel}
                 aria-describedby="brain-rush-seo-description"
               >
-                <img
-                  src="/brain-rush-icon.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-20 w-20 rounded-[1.5rem] shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] transition duration-200 hover:scale-105 md:h-24 md:w-24"
-                />
-                <p
-                  id="brain-rush-seo-description"
-                  className={`pointer-events-none absolute left-1/2 top-[calc(100%+0.7rem)] z-40 w-[min(20rem,78vw)] -translate-x-1/2 rounded-2xl border border-white/10 bg-slate-950/95 p-3 text-xs leading-5 text-slate-200 shadow-2xl transition duration-150 ${activeTooltip === 'logo-seo' ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
-                >
-                  <span className="mb-1 block font-black text-white">{t.seoLabel}</span>
-                  {t.seoDescription}
-                </p>
+                <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
+                  {subjectMode === SubjectMode.WORD ? t.wordMode : t.title}
+                </h1>
               </button>
+              <p
+                id="brain-rush-seo-description"
+                className={`pointer-events-none absolute left-1/2 top-[calc(100%+0.65rem)] z-40 w-[min(20rem,78vw)] -translate-x-1/2 rounded-2xl border border-white/10 bg-slate-950/95 p-3 text-xs leading-5 text-slate-200 shadow-2xl transition duration-150 ${activeTooltip === 'title-seo' ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
+              >
+                <span className="mb-1 block font-black text-white">{t.seoLabel}</span>
+                {t.seoDescription}
+              </p>
             </div>
-            
-            <h1 className="text-4xl md:text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
-              {subjectMode === SubjectMode.WORD ? t.wordMode : t.title}
-            </h1>
             <p className="text-slate-300 text-base md:text-lg mb-3 font-medium">
               {subjectMode === SubjectMode.WORD ? t.wordModeDescription : t.subtitle}
             </p>
@@ -1422,9 +1491,6 @@ export default function App() {
               ) : (
                 <>Use <span className="font-bold text-slate-300">← →</span> arrows or <span className="font-bold text-slate-300">Drag</span> to move</>
               )}
-            </div>
-            <div className="mt-6">
-              {renderMistakeList(currentMistakes)}
             </div>
               </>
             ) : subjectMode === SubjectMode.MATH ? (
