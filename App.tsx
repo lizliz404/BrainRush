@@ -123,15 +123,7 @@ const TRANSLATIONS = {
       'So I turned the idea into a browser mini-game called Brain Rush. Not an education platform. No login streaks, ranking pressure, membership popups, or that whole circus.',
       'Kids see a game: catch the right answer, dodge the wrong one, chase the score, switch avatars. Parents and teachers care about the result: how many questions were practiced, what the accuracy was, whether speed improved, and whether the kid wants another round.',
       'There are two small math modes right now: a 60-second quick practice with no setup, and an adjustable practice mode where operations, number ranges, remainders, and negatives can be tuned for targeted drills.',
-      'I also added an English word mode, Word Speedrun, with Chinese-English choices and sentence cloze.',
-      'But I am still not sure whether this is a real need. It may be far from something parents love or teachers recommend, so I want real user feedback.',
-      'If you are a primary-school parent or teacher, I want to hear the blunt version: would you let a child use a mini-game like this for math or vocabulary practice? Would you worry it becomes “only wants to play, not practice”? Do you care more about accuracy, speed, or consistency? How many minutes per day would feel right, not burdensome? If you do not need it at all, say that too.',
-      'If it is a fake need, I will treat it as a half-abandoned little project from the warehouse, tidy it up, and move on. If it can help some parents yell a little less and help some kids practice a few more questions, I will keep polishing it.',
-      'The thing I most want to confirm is simple: can development actually serve specific people?',
     ],
-    storyBulletsTitle: 'I especially want feedback on:',
-    storyBullets: ['Child reaction after trying it', 'Parent concerns', 'What teachers think is missing', 'Whether a specific piece of feedback should enter the next version'],
-    storySeoNote: 'Real critique is welcome. If one piece of your feedback becomes a feature, that means this is not just me entertaining myself 🤪',
     storyClose: 'Back to game',
     dataExported: 'Brain Rush data exported.',
     dataCleared: 'Local Brain Rush data cleared.',
@@ -235,16 +227,7 @@ const TRANSLATIONS = {
       '所以后来我把想法做成了一个网页小游戏，叫 BrainRush，头脑冲刺。没做“教育平台”，没登录打卡、排行榜、会员弹窗那一套。',
       '孩子看到的是游戏：接对、躲错、冲分、换角色。而家长和老师真正关心的是结果：练了多少题，正确率怎么样，速度有没有提高，孩子愿不愿意再来一局。',
       '当前两个小模式：1）60 秒快速练习。不用调设置。一局只有 60 秒，孩子不会觉得“又要开始漫长受刑”。结束后能看到正确率、答题量。这个模式适合快速刷一轮。',
-      '2）可调练习模式。这个更偏定制。可选加减乘除、数字范围，连余数/负数也能开关。比起漫无目的地玩，更像针对某一类题练。比如最近 20 内退位除法老错，那就只练这个。',
-      '现在还加了英语单词模式（Word Speedrun）：中英互译、句子填空。',
-      '但我还不确定它算不算【真需求】，离“家长爱用、老师推荐”可能还差得远，所以想听听真实用户的想法。',
-      '如果你是小学生家长，或者老师，我想跟你聊聊：你愿意让孩子用这种小游戏练口算/单词吗？会担心它变成“只想玩，不想练”吗？你更关心正确率、速度，还是稳定性？每天玩几分钟，你会觉得刚好，不算负担？如果你完全不需要，也可以直接说：没必要。',
-      '如果是假需求，我就把它当成个从仓库里翻出来的半废弃小项目，收一收，继续练。如果它确实能帮某些家长少吼两句，帮孩子多练几题，那就继续把它打磨好。',
-      '最想确认的是：能不能通过开发，真的服务到具体的人。链接放评论区。欢迎真实拍砖。孩子试玩后的反应、家长的顾虑、老师觉得缺什么，都可以说。如果你的一条反馈进了下一版功能，那就说明这真的不是我自嗨了 🤪',
     ],
-    storyBulletsTitle: '想听到的真实反馈：',
-    storyBullets: ['孩子试玩后的反应', '家长的顾虑', '老师觉得缺什么', '什么反馈值得进下一版功能'],
-    storySeoNote: '#小学数学 #口算训练 #小学英语 #记单词 #小学生作业 #辅导作业 #教育游戏 #家长辅导 #小学老师 #英语老师 #学习工具 #BuildInPublic',
     storyClose: '回到游戏',
     dataExported: 'Brain Rush 数据已导出。',
     dataCleared: '本地 Brain Rush 数据已清除。',
@@ -444,8 +427,18 @@ export default function App() {
   useEffect(() => {
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
     document.title = lang === 'zh'
-      ? 'Brain Rush｜60 秒数学与单词反应练习'
-      : 'Brain Rush｜60-second math and word reaction practice';
+      ? 'Brain Rush｜60 秒口算训练与英语单词小游戏'
+      : 'Brain Rush｜60-second mental math and English word game';
+
+    const description = document.querySelector('meta[name="description"]');
+    if (description) {
+      description.setAttribute(
+        'content',
+        lang === 'zh'
+          ? 'Brain Rush 是免费的儿童口算训练与英语单词小游戏，支持 60 秒速算、单词选择、句子填空、错题本、本地成绩和移动端拖拽练习。'
+          : 'Brain Rush is a free 60-second mental math and English word game with quick arithmetic practice, vocabulary choices, sentence cloze, a wrong answer book, local scores, and mobile drag controls.'
+      );
+    }
   }, [lang]);
 
   // Load saved data
@@ -925,6 +918,15 @@ export default function App() {
   };
 
   const exitGame = () => {
+    setPlayMode(PlayMode.CLASSIC);
+    setScore(0);
+    setLives(DIFFICULTY_CONFIG[difficulty].lives);
+    setAttempts(0);
+    setCorrect(0);
+    setAccuracy(0);
+    latestStatsRef.current = { correct: 0, attempts: 0, accuracy: 0 };
+    setTimeLeftSec(60);
+    resetSessionMistakes();
     setGameState(GameState.MENU);
     setMenuView('main');
     stopMenuBgm();
@@ -1001,7 +1003,7 @@ export default function App() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#1e1b4b] to-black opacity-80 z-0"></div>
 
       {/* Top Actions */}
-      {(gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.CUSTOMIZE) && (
+      {gameState === GameState.MENU && menuView === 'main' && (
         <div className="absolute left-4 right-4 top-5 z-50 flex items-center justify-between gap-2">
           <a
             href={PEP_WORDS_URL}
@@ -1104,20 +1106,6 @@ export default function App() {
                 <p key={paragraph}>{paragraph}</p>
               ))}
             </div>
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <h3 className="text-sm font-black text-white">{t.storyBulletsTitle}</h3>
-              <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-300 sm:grid-cols-2">
-                {t.storyBullets.map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-300" aria-hidden="true"></span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <p className="mt-5 rounded-2xl border border-amber-200/15 bg-amber-200/10 p-4 text-sm font-bold leading-6 text-amber-50/90">
-              {t.storySeoNote}
-            </p>
             <div className="mt-6 flex justify-end">
               <button onClick={closeStory} className="rounded-full bg-cyan-300 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-cyan-200">
                 {t.storyClose}
@@ -1305,7 +1293,11 @@ export default function App() {
 
       {/* Main Menu */}
       {gameState === GameState.MENU && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
+        <div
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
           <div className="relative w-full max-w-md bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {menuView === 'main' ? (
               <>
@@ -1364,29 +1356,24 @@ export default function App() {
             </p>
             {/* Difficulty Selector */}
             <div className="mb-8">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{t.difficulty}</h3>
               <div className="flex bg-black/40 rounded-xl p-1 gap-1">
                 {Object.values(Difficulty).map(diff => (
                   <button
                     key={diff}
                     onClick={() => setDifficulty(diff)}
-                    className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-lg transition-all duration-300 ease-out ${
+                    className={`flex-1 rounded-lg px-1.5 py-2 text-xs md:text-sm font-bold transition-all duration-300 ease-out ${
                       difficulty === diff 
                         ? 'bg-white/95 text-game-bg shadow-md scale-[1.02]' 
                         : 'text-slate-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    {DIFFICULTY_CONFIG[diff].label[lang]}
+                    <span className="block">{DIFFICULTY_CONFIG[diff].label[lang]}</span>
+                    <span className={`mt-0.5 block text-[10px] font-semibold leading-none ${difficulty === diff ? 'text-slate-600' : 'text-slate-500'}`}>
+                      {lang === 'zh'
+                        ? `${DIFFICULTY_CONFIG[diff].lives} 条命`
+                        : `${DIFFICULTY_CONFIG[diff].lives} ${DIFFICULTY_CONFIG[diff].lives > 1 ? 'lives' : 'life'}`}
+                    </span>
                   </button>
-                ))}
-              </div>
-              <div className="mt-5 grid grid-cols-4 gap-1 text-center text-xs text-slate-400 leading-6 tracking-wide">
-                {Object.values(Difficulty).map(diff => (
-                  <span key={`hint-${diff}`}>
-                    {lang === 'zh'
-                      ? `${DIFFICULTY_CONFIG[diff].lives} 条命`
-                      : `${DIFFICULTY_CONFIG[diff].lives} ${DIFFICULTY_CONFIG[diff].lives > 1 ? 'lives' : 'life'}`}
-                  </span>
                 ))}
               </div>
             </div>
