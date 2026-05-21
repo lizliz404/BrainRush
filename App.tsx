@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { animate } from 'animejs';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
-import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, Languages, MessageCircle, BookOpen } from 'lucide-react';
-import { QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, MessageCircle, BookOpen } from 'lucide-react';
+import { ArrowLeftStartOnRectangleIcon, LanguageIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
@@ -62,6 +62,9 @@ const TRANSLATIONS = {
     best: 'Best',
     tryAgain: 'TRY AGAIN',
     mainMenu: 'Main Menu',
+    exitGame: 'Exit game',
+    switchLanguage: 'Switch language',
+    mistakesExported: 'Mistake book exported as CSV.',
     lockerRoom: 'Locker Room',
     head: 'Head',
     body: 'Body',
@@ -171,6 +174,9 @@ const TRANSLATIONS = {
     best: '最高分',
     tryAgain: '再试一次',
     mainMenu: '返回主菜单',
+    exitGame: '退出游戏',
+    switchLanguage: '切换语言',
+    mistakesExported: '错题本已导出为 CSV。',
     lockerRoom: '更衣室',
     head: '头部',
     body: '上衣',
@@ -374,11 +380,11 @@ const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
   const particles = Array.from({ length: particleCount }, (_, index) => {
     const particle = document.createElement('span');
     const size = 3 + Math.random() * 7;
-    particle.className = 'absolute block rounded-full opacity-95 blur-[0.2px]';
+    particle.className = 'absolute block rounded-full opacity-70 blur-[0.2px]';
     particle.style.width = `${size}px`;
     particle.style.height = `${size}px`;
     particle.style.background = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
-    particle.style.boxShadow = `0 0 ${8 + Math.random() * 14}px ${CONFETTI_COLORS[index % CONFETTI_COLORS.length]}`;
+    particle.style.boxShadow = `0 0 ${4 + Math.random() * 8}px ${CONFETTI_COLORS[index % CONFETTI_COLORS.length]}`;
     particle.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
     root.appendChild(particle);
     return particle;
@@ -388,8 +394,8 @@ const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
     x: () => (Math.random() - 0.5) * 240 * intensity,
     y: () => (Math.random() - 0.55) * 210 * intensity,
     scale: [1.15, 0.15],
-    opacity: [1, 0],
-    duration: () => 520 + Math.random() * 420,
+    opacity: [0.72, 0],
+    duration: () => 760 + Math.random() * 520,
     delay: (_target, index) => index * 5,
     ease: 'outExpo',
     onComplete: () => root.remove(),
@@ -835,22 +841,35 @@ export default function App() {
   );
 
 
-  const exportLocalData = () => {
-    const data = LOCAL_DATA_KEYS.reduce<Record<string, string | null>>((acc, key) => {
-      acc[key] = localStorage.getItem(key);
-      return acc;
-    }, {});
+  const escapeCsvCell = (value: string | number | null | undefined) => {
+    const textValue = value === null || value === undefined ? '' : String(value);
+    return `"${textValue.replace(/"/g, '""')}"`;
+  };
 
-    const blob = new Blob([
-      JSON.stringify({ app: 'Brain Rush', exportedAt: new Date().toISOString(), data }, null, 2),
-    ], { type: 'application/json' });
+  const exportLocalData = () => {
+    const rows = (Object.values(mistakeBook).flat() as MistakeRecord[])
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .map(mistake => [
+        mistake.timestamp,
+        mistake.subjectMode,
+        mistake.questionText,
+        mistake.selectedAnswer ?? t.missedAnswer,
+        mistake.correctAnswer,
+      ]);
+
+    const header = ['time', 'subject', 'question', 'your_answer', 'correct_answer'];
+    const csv = [header, ...rows]
+      .map(row => row.map(escapeCsvCell).join(','))
+      .join('\n');
+
+    const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `brain-rush-data-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `brain-rush-mistakes-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    window.alert(t.dataExported);
+    window.alert(t.mistakesExported);
   };
 
   const openFeedback = () => {
@@ -879,6 +898,23 @@ export default function App() {
       setStoryClosing(false);
     }, TRANSITION_MS);
   };
+
+  const exitGame = () => {
+    setGameState(GameState.MENU);
+    setMenuView('main');
+    stopMenuBgm();
+  };
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && gameState === GameState.PLAYING) {
+        exitGame();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [gameState]);
 
   const submitFeedback = async () => {
     const message = feedbackText.trim();
@@ -986,21 +1022,19 @@ export default function App() {
             <BookOpen size={17} />
             <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-emerald-200/20 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-emerald-50 shadow-2xl transition ${activeTooltip === 'pep-words' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>PEP Words</span>
           </a>
-          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/40 p-1 shadow-lg backdrop-blur-md">
-            <Languages size={13} className="ml-2 text-white/55" />
-            <button
-              onClick={() => setLang('en')}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${lang === 'en' ? 'bg-white text-black shadow-sm' : 'text-white/50 hover:text-white'}`}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLang('zh')}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${lang === 'zh' ? 'bg-white text-black shadow-sm' : 'text-white/50 hover:text-white'}`}
-            >
-              中
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setLang(current => (current === 'en' ? 'zh' : 'en'))}
+            onMouseEnter={() => setActiveTooltip('language')}
+            onMouseLeave={() => setActiveTooltip(current => (current === 'language' ? null : current))}
+            onFocus={() => setActiveTooltip('language')}
+            onBlur={() => setActiveTooltip(current => (current === 'language' ? null : current))}
+            className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/70 shadow-lg backdrop-blur-md transition-all hover:bg-white/10 hover:text-white"
+            aria-label={t.switchLanguage}
+          >
+            <LanguageIcon className="h-5 w-5" aria-hidden="true" />
+            <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-white/15 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-white shadow-2xl transition ${activeTooltip === 'language' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>{t.switchLanguage}</span>
+          </button>
         </div>
       )}
 
@@ -1157,6 +1191,15 @@ export default function App() {
       {/* UI Overlay - HUD */}
       {gameState === GameState.PLAYING && (
         <div className="absolute top-0 left-0 w-full px-3 py-2 z-20 pointer-events-none">
+          <button
+            type="button"
+            onClick={exitGame}
+            className="pointer-events-auto absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/75 shadow-lg backdrop-blur-md transition hover:bg-white/10 hover:text-white"
+            aria-label={t.exitGame}
+            title={t.exitGame}
+          >
+            <ArrowLeftStartOnRectangleIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
           <div className="flex flex-col items-center gap-2">
 
             <div className="flex flex-wrap items-center justify-center gap-3">
