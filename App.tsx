@@ -11,7 +11,63 @@ type Language = 'en' | 'zh';
 const PEP_WORDS_URL = 'https://pep-words.lizliz.xyz';
 const TRANSITION_MS = 220;
 const CONFETTI_COLORS = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#34d399', '#fb7185'];
-const TOUCH_TOOLTIP_MS = 1800;
+
+const INTERACTION_CONFIG = {
+  touchTooltipMs: 1800,
+  pointerConfettiIntervalMs: {
+    mouse: 170,
+    touch: 230,
+  },
+} as const;
+
+const PARTICLE_CONFIG = {
+  minParticles: 10,
+  baseParticles: 26,
+  maxParticles: 50,
+  minSizePx: 3,
+  maxSizePx: 10,
+  spreadX: 240,
+  spreadY: 210,
+  durationMs: {
+    min: 760,
+    max: 1280,
+  },
+  staggerMs: 5,
+} as const;
+
+const BrainRushLogoIcon = ({ className = '' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 128 128" fill="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="brain-rush-logo-tile" x1="18" y1="16" x2="110" y2="112" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="#22d3ee" />
+        <stop offset="0.56" stopColor="#6366f1" />
+        <stop offset="1" stopColor="#a855f7" />
+      </linearGradient>
+      <radialGradient id="brain-rush-logo-glow" cx="50%" cy="45%" r="60%">
+        <stop offset="0" stopColor="#ffffff" stopOpacity="0.34" />
+        <stop offset="0.42" stopColor="#67e8f9" stopOpacity="0.16" />
+        <stop offset="1" stopColor="#111827" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+    <rect x="14" y="14" width="100" height="100" rx="28" fill="url(#brain-rush-logo-tile)" />
+    <rect x="14" y="14" width="100" height="100" rx="28" fill="url(#brain-rush-logo-glow)" />
+    <g stroke="#f8fafc" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M48 38c-9 0-16 7-16 16 0 5 2 9 6 12-4 3-6 7-6 12 0 9 7 16 16 16 7 0 13-4 15-10V48c-2-6-8-10-15-10Z" />
+      <path d="M80 38c9 0 16 7 16 16 0 5-2 9-6 12 4 3 6 7 6 12 0 9-7 16-16 16-7 0-13-4-15-10V48c2-6 8-10 15-10Z" />
+      <path d="M64 48v36" />
+      <path d="M43 56h14" />
+      <path d="M71 56h14" />
+      <path d="M43 75h14" />
+      <path d="M71 75h14" />
+    </g>
+    <g fill="#fef3c7">
+      <circle cx="42" cy="56" r="3.2" />
+      <circle cx="86" cy="56" r="3.2" />
+      <circle cx="42" cy="75" r="3.2" />
+      <circle cx="86" cy="75" r="3.2" />
+    </g>
+  </svg>
+);
 
 const PepWordsLogoIcon = ({ className = '' }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -363,7 +419,10 @@ const loadRecordsBySubject = <T,>(keys: Record<SubjectMode, string>): Record<Sub
 const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
   if (typeof document === 'undefined') return;
 
-  const particleCount = Math.max(10, Math.round(26 * intensity));
+  const particleCount = Math.min(
+    PARTICLE_CONFIG.maxParticles,
+    Math.max(PARTICLE_CONFIG.minParticles, Math.round(PARTICLE_CONFIG.baseParticles * intensity))
+  );
   const root = document.createElement('div');
   root.setAttribute('aria-hidden', 'true');
   root.className = 'pointer-events-none fixed left-0 top-0 z-[70] h-0 w-0 overflow-visible';
@@ -372,7 +431,7 @@ const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
 
   const particles = Array.from({ length: particleCount }, (_, index) => {
     const particle = document.createElement('span');
-    const size = 3 + Math.random() * 7;
+    const size = PARTICLE_CONFIG.minSizePx + Math.random() * (PARTICLE_CONFIG.maxSizePx - PARTICLE_CONFIG.minSizePx);
     particle.className = 'absolute block rounded-full opacity-70 blur-[0.2px]';
     particle.style.width = `${size}px`;
     particle.style.height = `${size}px`;
@@ -384,12 +443,12 @@ const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
   });
 
   animate(particles, {
-    x: () => (Math.random() - 0.5) * 240 * intensity,
-    y: () => (Math.random() - 0.55) * 210 * intensity,
+    x: () => (Math.random() - 0.5) * PARTICLE_CONFIG.spreadX * intensity,
+    y: () => (Math.random() - 0.55) * PARTICLE_CONFIG.spreadY * intensity,
     scale: [1.15, 0.15],
     opacity: [0.72, 0],
-    duration: () => 760 + Math.random() * 520,
-    delay: (_target, index) => index * 5,
+    duration: () => PARTICLE_CONFIG.durationMs.min + Math.random() * (PARTICLE_CONFIG.durationMs.max - PARTICLE_CONFIG.durationMs.min),
+    delay: (_target, index) => index * PARTICLE_CONFIG.staggerMs,
     ease: 'outExpo',
     onComplete: () => root.remove(),
   });
@@ -614,18 +673,26 @@ export default function App() {
     if (isFinePointer()) return true;
 
     const now = window.performance.now();
-    const isSecondTap = touchTooltipRef.current.key === key && now - touchTooltipRef.current.shownAt < TOUCH_TOOLTIP_MS;
-    if (isSecondTap) return true;
+    const isSecondTap = touchTooltipRef.current.key === key && now - touchTooltipRef.current.shownAt < INTERACTION_CONFIG.touchTooltipMs;
+    if (isSecondTap) {
+      touchTooltipRef.current = { key: '', shownAt: 0 };
+      setActiveTooltip(current => (current === key ? null : current));
+      return true;
+    }
 
     event.preventDefault();
     event.stopPropagation();
     touchTooltipRef.current = { key, shownAt: now };
     setActiveTooltip(key);
     window.setTimeout(() => {
-      if (touchTooltipRef.current.key === key && window.performance.now() - touchTooltipRef.current.shownAt >= TOUCH_TOOLTIP_MS - 50) {
+      if (
+        touchTooltipRef.current.key === key &&
+        window.performance.now() - touchTooltipRef.current.shownAt >= INTERACTION_CONFIG.touchTooltipMs - 50
+      ) {
+        touchTooltipRef.current = { key: '', shownAt: 0 };
         setActiveTooltip(current => (current === key ? null : current));
       }
-    }, TOUCH_TOOLTIP_MS);
+    }, INTERACTION_CONFIG.touchTooltipMs);
     return false;
   };
 
@@ -633,7 +700,9 @@ export default function App() {
     if (gameState !== GameState.MENU || feedbackOpen || storyOpen || mistakesOpen || menuView !== 'main') return;
 
     const now = window.performance.now();
-    const interval = event.pointerType === 'mouse' ? 170 : 230;
+    const interval = event.pointerType === 'mouse'
+      ? INTERACTION_CONFIG.pointerConfettiIntervalMs.mouse
+      : INTERACTION_CONFIG.pointerConfettiIntervalMs.touch;
     if (now - lastPointerConfettiRef.current < interval) return;
 
     lastPointerConfettiRef.current = now;
@@ -1052,7 +1121,9 @@ export default function App() {
           </button>
           <button
             type="button"
-            onClick={openMistakes}
+            onClick={(event) => {
+              if (shouldRunTooltipAction('mistakes', event)) openMistakes();
+            }}
             onMouseEnter={() => setActiveTooltip('mistakes')}
             onMouseLeave={() => setActiveTooltip(current => (current === 'mistakes' ? null : current))}
             onFocus={() => setActiveTooltip('mistakes')}
@@ -1065,7 +1136,9 @@ export default function App() {
           </button>
           <button
             type="button"
-            onClick={() => setLang(current => (current === 'en' ? 'zh' : 'en'))}
+            onClick={(event) => {
+              if (shouldRunTooltipAction('language', event)) setLang(current => (current === 'en' ? 'zh' : 'en'));
+            }}
             onMouseEnter={() => setActiveTooltip('language')}
             onMouseLeave={() => setActiveTooltip(current => (current === 'language' ? null : current))}
             onFocus={() => setActiveTooltip('language')}
@@ -1318,12 +1391,7 @@ export default function App() {
               </div>
             </div>
             <div className="mb-6 flex justify-center">
-              <img
-                src="/brain-rush-icon.svg"
-                alt=""
-                aria-hidden="true"
-                className="h-20 w-20 rounded-[1.5rem] shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] md:h-24 md:w-24"
-              />
+              <BrainRushLogoIcon className="h-20 w-20 rounded-[1.5rem] shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] md:h-24 md:w-24" />
             </div>
             <div className="relative mb-2 inline-flex justify-center">
               <button
