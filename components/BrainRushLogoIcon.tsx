@@ -1,6 +1,6 @@
 import React from 'react';
 
-const BRAIN_RUSH_ICON_SRC = '/brain-rush-icon.svg';
+const BRAIN_RUSH_ICON_SRC = '/brand-assets/brain-rush-icon-v3.svg';
 
 type BrainRushLogoIconProps = {
   className?: string;
