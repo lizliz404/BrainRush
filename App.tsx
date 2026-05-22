@@ -3,11 +3,13 @@ import { animate } from 'animejs';
 import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
 import BrainRushLogoIcon from './components/BrainRushLogoIcon';
+import PepWordsLogoIcon from './components/PepWordsLogoIcon';
 import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, MessageCircle } from 'lucide-react';
 import { ArrowLeftStartOnRectangleIcon, BookOpenIcon, LanguageIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
+type DeferredPointerAction = { confirm: () => void; message?: string };
 
 const PEP_WORDS_URL = 'https://pep-words.lizliz.xyz';
 const TRANSITION_MS = 220;
@@ -35,16 +37,6 @@ const PARTICLE_CONFIG = {
   },
   staggerMs: 5,
 } as const;
-
-const PepWordsLogoIcon = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M4.5 1.5C4.5 3.15 3.15 4.5 1.5 4.5C3.15 4.5 4.5 5.85 4.5 7.5C4.5 5.85 5.85 4.5 7.5 4.5C5.85 4.5 4.5 3.15 4.5 1.5Z" fill="currentColor" stroke="none" />
-    <path d="M21 18.5C21 19.33 20.33 20 19.5 20C20.33 20 21 20.67 21 21.5C21 20.67 21.67 20 22.5 20C21.67 20 21 19.33 21 18.5Z" fill="currentColor" stroke="none" />
-    <path d="M9 9V6.5A2.5 2.5 0 0 1 11.5 4h8A2.5 2.5 0 0 1 22 6.5v8A2.5 2.5 0 0 1 19.5 17H18" />
-    <rect x="5" y="9" width="13" height="13" rx="2.5" />
-    <path d="M7.5 13.5L9.5 17.5L11.5 13.5L13.5 17.5L15.5 13.5" />
-  </svg>
-);
 
 const TRANSLATIONS = {
   en: {
@@ -445,6 +437,7 @@ export default function App() {
   const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
   const [wechatQrReady, setWechatQrReady] = useState(true);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [deferredPointerAction, setDeferredPointerAction] = useState<DeferredPointerAction | null>(null);
   const lastPointerConfettiRef = useRef(0);
   const touchTooltipRef = useRef({ key: '', shownAt: 0 });
   
@@ -636,21 +629,24 @@ export default function App() {
   const isFinePointer = () =>
     typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-  const shouldRunTooltipAction = (key: string, event: React.MouseEvent<HTMLElement>) => {
-    if (isFinePointer()) return true;
-
-    const now = window.performance.now();
-    const isSecondTap = touchTooltipRef.current.key === key && now - touchTooltipRef.current.shownAt < INTERACTION_CONFIG.touchTooltipMs;
-    if (isSecondTap) {
-      touchTooltipRef.current = { key: '', shownAt: 0 };
-      setActiveTooltip(current => (current === key ? null : current));
+  const shouldRunTooltipAction = (
+    key: string,
+    event: React.MouseEvent<HTMLElement>,
+    action?: DeferredPointerAction,
+  ) => {
+    if (isFinePointer()) {
+      setDeferredPointerAction(null);
       return true;
     }
 
     event.preventDefault();
     event.stopPropagation();
+
+    const now = window.performance.now();
     touchTooltipRef.current = { key, shownAt: now };
     setActiveTooltip(key);
+    setDeferredPointerAction(action ?? null);
+
     window.setTimeout(() => {
       if (
         touchTooltipRef.current.key === key &&
@@ -1044,7 +1040,10 @@ export default function App() {
           <a
             href={PEP_WORDS_URL}
             onClick={(event) => {
-              if (!shouldRunTooltipAction('pep-words', event)) return;
+              shouldRunTooltipAction('pep-words', event, {
+                confirm: () => window.open(PEP_WORDS_URL, '_blank', 'noopener,noreferrer'),
+                message: 'PEP Words',
+              });
             }}
             onMouseEnter={() => setActiveTooltip('pep-words')}
             onMouseLeave={() => setActiveTooltip(current => (current === 'pep-words' ? null : current))}
@@ -1060,7 +1059,7 @@ export default function App() {
           <button
             type="button"
             onClick={(event) => {
-              if (shouldRunTooltipAction('story-top', event)) openStory();
+              if (shouldRunTooltipAction('story-top', event, { confirm: openStory, message: t.storyCta })) openStory();
             }}
             onMouseEnter={() => setActiveTooltip('story-top')}
             onMouseLeave={() => setActiveTooltip(current => (current === 'story-top' ? null : current))}
@@ -1074,7 +1073,7 @@ export default function App() {
           </button>
           <button
             onClick={(event) => {
-              if (shouldRunTooltipAction('feedback', event)) openFeedback();
+              if (shouldRunTooltipAction('feedback', event, { confirm: openFeedback, message: t.feedback })) openFeedback();
             }}
             onMouseEnter={() => setActiveTooltip('feedback')}
             onMouseLeave={() => setActiveTooltip(current => (current === 'feedback' ? null : current))}
@@ -1089,7 +1088,7 @@ export default function App() {
           <button
             type="button"
             onClick={(event) => {
-              if (shouldRunTooltipAction('mistakes', event)) openMistakes();
+              if (shouldRunTooltipAction('mistakes', event, { confirm: openMistakes, message: t.recentMistakes })) openMistakes();
             }}
             onMouseEnter={() => setActiveTooltip('mistakes')}
             onMouseLeave={() => setActiveTooltip(current => (current === 'mistakes' ? null : current))}
@@ -1104,7 +1103,8 @@ export default function App() {
           <button
             type="button"
             onClick={(event) => {
-              if (shouldRunTooltipAction('language', event)) setLang(current => (current === 'en' ? 'zh' : 'en'));
+              const switchLanguage = () => setLang(current => (current === 'en' ? 'zh' : 'en'));
+              if (shouldRunTooltipAction('language', event, { confirm: switchLanguage, message: t.switchLanguage })) switchLanguage();
             }}
             onMouseEnter={() => setActiveTooltip('language')}
             onMouseLeave={() => setActiveTooltip(current => (current === 'language' ? null : current))}
@@ -1117,6 +1117,22 @@ export default function App() {
             <span className={`pointer-events-none absolute right-0 top-[calc(100%+0.55rem)] z-50 whitespace-nowrap rounded-full border border-white/15 bg-slate-950/95 px-3 py-1.5 text-xs font-black text-white shadow-2xl transition ${activeTooltip === 'language' ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}>{t.switchLanguage}</span>
           </button>
           </div>
+          {deferredPointerAction && (
+            <button
+              type="button"
+              onClick={() => {
+                const action = deferredPointerAction.confirm;
+                setDeferredPointerAction(null);
+                touchTooltipRef.current = { key: '', shownAt: 0 };
+                setActiveTooltip(null);
+                action();
+              }}
+              className="rounded-full border border-white/15 bg-white px-3 py-2 text-xs font-black text-slate-950 shadow-2xl transition hover:bg-sky-100 md:hidden"
+              aria-label={`Confirm ${deferredPointerAction.message ?? activeTooltip ?? 'action'}`}
+            >
+              Confirm
+            </button>
+          )}
         </div>
       )}
 
