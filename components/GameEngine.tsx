@@ -142,12 +142,12 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const getViewportMetrics = (w: number, h: number, laneCount: number) => {
     const shortSide = Math.min(w, h);
     const isPortrait = h > w;
-    const horizontalPaddingPct = isPortrait ? 8 : 10;
+    const horizontalPaddingPct = isPortrait ? 4 : 10;
     const availableWidthPct = 100 - horizontalPaddingPct * 2;
     const laneWidthPct = availableWidthPct / Math.max(1, laneCount);
     const blockWidthPct = Math.min(
-      laneWidthPct * (isPortrait ? 0.8 : 0.72),
-      isPortrait ? 20 : 14
+      laneWidthPct * (isPortrait ? 0.92 : 0.72),
+      isPortrait ? 24 : 14
     );
     const playerSizePx = Math.max(shortSide * (isPortrait ? 0.1 : 0.07), 30);
     const playerHalfPct = Math.max((playerSizePx / w) * 52, 4.2);
@@ -169,8 +169,8 @@ const GameEngine: React.FC<GameEngineProps> = ({
   };
 
   const blockSizeClamp = (value: number, laneWidth: number) => {
-    const minWidth = Math.max(6.5, laneWidth * 0.5);
-    const maxWidth = laneWidth * 0.85;
+    const minWidth = Math.max(8, laneWidth * 0.72);
+    const maxWidth = laneWidth * 0.94;
     return Math.max(minWidth, Math.min(maxWidth, value));
   };
 
@@ -381,7 +381,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       const bx = (block.x / 100) * w;
       const by = (block.y / 100) * h;
       const bW = (block.width / 100) * w;
-      const bH = bW * 0.52; 
+      const bH = bW * (metrics.isPortrait ? 0.7 : 0.52); 
 
       const blockLeft = bx - bW / 2;
       const blockRight = bx + bW / 2;
@@ -411,7 +411,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       const bx = ((hitBlock as BlockEntity).x / 100) * w;
       const by = ((hitBlock as BlockEntity).y / 100) * h;
       const bW = ((hitBlock as BlockEntity).width / 100) * w;
-      const bH = bW * 0.52;
+      const bH = bW * (metrics.isPortrait ? 0.7 : 0.52);
       const blockBottom = by + bH;
 
       if ((hitBlock as BlockEntity).isCorrect) {
@@ -603,7 +603,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       const bx = (block.x / 100) * w;
       const by = (block.y / 100) * h;
       const bW = (block.width / 100) * w;
-      const bH = bW * 0.52; 
+      const bH = bW * (metrics.isPortrait ? 0.7 : 0.52); 
 
       ctx.fillStyle = 'white';
       ctx.beginPath();
@@ -616,9 +616,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
       ctx.fillStyle = '#1e1b4b'; 
       const text = block.value.toString();
-      const fontSize = fitTextSize(text, bW * 0.78, bH * 0.42, Math.max(12, bH * 0.2));
+      const textMaxWidth = bW * (metrics.isPortrait ? 0.88 : 0.78);
+      const fontSize = fitTextSize(text, textMaxWidth, bH * (metrics.isPortrait ? 0.42 : 0.42), Math.max(9, bH * 0.18));
       ctx.font = `bold ${Math.floor(fontSize)}px "Fredoka", sans-serif`;
-      ctx.fillText(block.value.toString(), bx, by + bH/2);
+      ctx.fillText(text, bx, by + bH/2);
     });
 
     // Draw Effects
