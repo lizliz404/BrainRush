@@ -1,5 +1,6 @@
 import { CLOZE_SET } from '../data/cloze';
 import { VOCAB } from '../data/vocab';
+import { VOCAB_META } from '../data/vocabMeta';
 import { ClozeItem, Difficulty, Question, VocabItem, WordDirectionMode, WordTuning } from '../types';
 import { getRandomItem, shuffleArray } from '../utils/random';
 
@@ -48,6 +49,25 @@ const getClozeChance = (difficulty: Difficulty): number => {
     default:
       return 0.2;
   }
+};
+
+const normalizeWord = (value: string): string => value.trim().toLowerCase();
+
+const getPrimaryPos = (item: VocabItem): string => {
+  const meta = VOCAB_META[normalizeWord(item.en)];
+  return meta?.pos?.split(/[;,/ ]/)[0]?.replace('.', '').trim().toLowerCase() || '';
+};
+
+const getMeaningHead = (value: string): string => value.split(/[，,；;、（(]/)[0]?.trim() || value.trim();
+
+const getDistractorPool = (answer: VocabItem, pool: VocabItem[], direction: 'en' | 'zh'): string[] => {
+  const answerPos = getPrimaryPos(answer);
+  const samePosItems = answerPos
+    ? pool.filter(item => item.en !== answer.en && getPrimaryPos(item) === answerPos)
+    : [];
+  const source = samePosItems.length >= 8 ? samePosItems : pool.filter(item => item.en !== answer.en);
+
+  return source.map(item => (direction === 'en' ? item.en : getMeaningHead(item.zh)));
 };
 
 const pickOptions = (
@@ -108,22 +128,21 @@ export const generateWordQuestionWithTuning = (difficulty: Difficulty, tuning: W
       : tuning.directionMode === WordDirectionMode.ZH_TO_EN
         ? false
         : Math.random() < 0.5;
-  const zhPool = vocabPool.map(item => item.zh);
-  const enPool = vocabPool.map(item => item.en);
-  const allZh = VOCAB.map(item => item.zh);
+  const allZh = VOCAB.map(item => getMeaningHead(item.zh));
   const allEn = VOCAB.map(item => item.en);
 
   if (isEnToZh) {
+    const answer = getMeaningHead(vocab.zh);
     return {
       text: vocab.en,
-      answer: vocab.zh,
-      options: pickOptions(vocab.zh, zhPool, allZh, optionCount),
+      answer,
+      options: pickOptions(answer, getDistractorPool(vocab, vocabPool, 'zh'), allZh, optionCount),
     };
   }
 
   return {
     text: vocab.zh,
     answer: vocab.en,
-    options: pickOptions(vocab.en, enPool, allEn, optionCount),
+    options: pickOptions(vocab.en, getDistractorPool(vocab, vocabPool, 'en'), allEn, optionCount),
   };
 };

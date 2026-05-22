@@ -7,7 +7,8 @@
     "dev": "vite",
     "check": "tsc --noEmit",
     "test:math": "tsx scripts/test-math-service.ts",
-    "test": "npm run test:math",
+    "test:word": "tsx scripts/test-word-service.ts",
+    "test": "npm run test:math && npm run test:word",
     "build": "npm run check && npm run test && vite build",
     "preview": "vite preview"
   },

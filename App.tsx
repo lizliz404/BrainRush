@@ -706,7 +706,7 @@ export default function App() {
     initAudio();
     stopMenuBgm();
     setPlayMode(PlayMode.QUICK_60);
-    setDifficulty(Difficulty.HARD);
+    setDifficulty(Difficulty.DEVIL);
     setTuning(QUICK_60_MATH_TUNING);
     setScore(0);
     setLives(Number.MAX_SAFE_INTEGER);
