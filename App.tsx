@@ -1383,9 +1383,7 @@ export default function App() {
           onClick={(event) => event.stopPropagation()}
         >
           <div className="relative w-full max-w-md overflow-hidden bg-white/5 border border-white/10 p-6 pb-12 md:p-8 rounded-3xl shadow-2xl text-center max-h-[calc(100dvh-3rem-env(safe-area-inset-bottom))] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-white/[0.025]" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-slate-300/16" />
-            <div className="pointer-events-none absolute bottom-0 right-0 h-[78%] w-[64%] bg-gradient-to-tl from-indigo-300/24 via-purple-300/16 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_74%_70%,rgba(148,163,184,0.16),transparent_58%),radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.055),transparent_46%),linear-gradient(145deg,rgba(255,255,255,0.035),rgba(99,102,241,0.06)_58%,rgba(15,23,42,0.05))]" />
             <div className="relative z-10">
             {menuView === 'main' ? (
               <>
