@@ -8,7 +8,8 @@ Keep Brain Rush stable, fast, and maintainable. The desired end state is a matur
 
 ## Asset and brand rules
 
-- The canonical neon Brain Rush logo asset is `public/brain-rush-icon-neon.svg`.
+- The canonical Brain Rush logo/favicon asset is `public/brain-rush-icon.svg`.
+- The canonical Brain Rush social preview source is `public/brain-rush-social.svg`; regenerate `public/brain-rush-social.png` from it for OG/Twitter cards.
 - Do not inline logo SVG in `index.html`, React components, JSON, or CSS.
 - `components/BrainRushLogoIcon.tsx` must reuse the canonical static asset.
 - Favicon/preload/OG/Twitter/Schema image references should stay aligned with the canonical asset unless there is a deliberate separate social image.

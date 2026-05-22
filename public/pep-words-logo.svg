@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
   <title id="title">PEP Words</title>
-  <desc id="desc">A vocabulary card icon with sparkle marks for PEP Words.</desc>
+  <desc id="desc">A centered stacked vocabulary-card icon with sparkle marks for PEP Words.</desc>
   <defs>
-    <linearGradient id="tile" x1="18" y1="16" x2="110" y2="112" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tile" x1="18" y1="12" x2="110" y2="110" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#f8f2e7"/>
       <stop offset="0.55" stop-color="#d7c6aa"/>
       <stop offset="1" stop-color="#8aa0ad"/>
@@ -12,19 +12,19 @@
       <stop offset="0.46" stop-color="#fff7ed" stop-opacity="0.28"/>
       <stop offset="1" stop-color="#314052" stop-opacity="0"/>
     </radialGradient>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#312a22" flood-opacity="0.30"/>
+    <filter id="shadow" x="-22%" y="-22%" width="144%" height="144%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#312a22" flood-opacity="0.28"/>
     </filter>
   </defs>
-  <rect x="14" y="14" width="100" height="100" rx="28" fill="url(#tile)" filter="url(#shadow)"/>
-  <rect x="14" y="14" width="100" height="100" rx="28" fill="url(#glow)"/>
+  <rect x="14" y="12" width="100" height="100" rx="28" fill="url(#tile)" filter="url(#shadow)"/>
+  <rect x="14" y="12" width="100" height="100" rx="28" fill="url(#glow)"/>
   <g fill="none" stroke="#526a7f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M48 38v-7c0-7 6-13 13-13h35c7 0 13 6 13 13v35c0 7-6 13-13 13h-9" opacity="0.78"/>
-    <rect x="31" y="48" width="56" height="56" rx="13" fill="#fffaf2" fill-opacity="0.46"/>
-    <path d="M42 67l9 19 9-19 9 19 9-19"/>
+    <rect x="42" y="25" width="55" height="55" rx="13" fill="#fffaf2" fill-opacity="0.16" opacity="0.78"/>
+    <rect x="31" y="43" width="58" height="58" rx="13" fill="#fffaf2" fill-opacity="0.46"/>
+    <path d="M42 63l9 19 9-19 9 19 9-19"/>
   </g>
   <g fill="#f59e0b">
-    <path d="M35 24c0 7-5 12-12 12 7 0 12 5 12 12 0-7 5-12 12-12-7 0-12-5-12-12Z"/>
-    <path d="M99 88c0 5-4 9-9 9 5 0 9 4 9 9 0-5 4-9 9-9-5 0-9-4-9-9Z" opacity="0.86"/>
+    <path d="M34 22c0 7-5 12-12 12 7 0 12 5 12 12 0-7 5-12 12-12-7 0-12-5-12-12Z"/>
+    <path d="M98 82c0 5-4 9-9 9 5 0 9 4 9 9 0-5 4-9 9-9-5 0-9-4-9-9Z" opacity="0.86"/>
   </g>
 </svg>
