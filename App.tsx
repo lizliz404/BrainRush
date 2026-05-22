@@ -558,10 +558,10 @@ export default function App() {
 
   const getQuestionTextClass = () => {
     const length = currentQuestion.length;
-    if (subjectMode === SubjectMode.WORD && length > 36) return 'text-lg md:text-3xl leading-snug';
-    if (subjectMode === SubjectMode.WORD && length > 18) return 'text-xl md:text-4xl leading-tight';
-    if (length > 20) return 'text-2xl md:text-4xl leading-tight';
-    return 'text-3xl md:text-5xl leading-none';
+    if (subjectMode === SubjectMode.WORD && length > 36) return 'text-base md:text-3xl leading-snug';
+    if (subjectMode === SubjectMode.WORD && length > 18) return 'text-lg md:text-4xl leading-tight';
+    if (length > 20) return 'text-xl md:text-4xl leading-tight';
+    return 'text-2xl md:text-5xl leading-none';
   };
 
   const getLivesLabel = () => {
@@ -780,7 +780,7 @@ export default function App() {
             {lang === 'zh' ? '按最高分解锁' : 'Score unlocks'}
           </span>
         </div>
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-6 md:grid-cols-8 md:gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-6 md:grid-cols-8 md:gap-1">
           {UNLOCKABLE_SETS.map((set, idx) => {
             const isUnlocked = overallHighScore >= set.score;
             const isSelected = avatar[part] === set[part];
@@ -789,7 +789,7 @@ export default function App() {
                 key={idx}
                 disabled={!isUnlocked}
                 onClick={() => setAvatar(prev => ({ ...prev, [part]: set[part] }))}
-                className={`group relative flex aspect-square min-h-10 flex-col items-center justify-center overflow-hidden rounded-xl border text-xl transition-all duration-200 md:min-h-8 md:rounded-lg md:text-lg
+                className={`group relative flex aspect-square min-h-10 flex-col items-center justify-center overflow-hidden rounded-xl border text-xl transition-all duration-200 md:min-h-0 md:rounded-lg md:text-base
                   ${isSelected ? 'border-cyan-200 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.28)] scale-[1.04]' : 'border-white/10 bg-black/20 hover:border-white/25 hover:bg-white/10'}
                   ${!isUnlocked ? 'cursor-not-allowed opacity-40 grayscale' : 'cursor-pointer'}
                 `}
@@ -799,8 +799,8 @@ export default function App() {
                 <span className="drop-shadow-md">{set[part]}</span>
                 {!isUnlocked && (
                   <div className="absolute inset-0 rounded-xl bg-black/70 md:rounded-lg">
-                    <Lock size={12} className="absolute left-1/2 top-1 -translate-x-1/2 text-white/80 md:h-2.5 md:w-2.5" />
-                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-black leading-none text-white/85 md:text-[8px]">{set.score}</span>
+                    <Lock size={12} className="absolute left-1/2 top-0.5 -translate-x-1/2 text-white/80 md:h-2 md:w-2" />
+                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[9px] font-black leading-none text-white/85 md:text-[7px]">{set.score}</span>
                   </div>
                 )}
               </button>
@@ -811,7 +811,7 @@ export default function App() {
     );
 
     return (
-      <div className="absolute inset-0 z-40 flex flex-col overflow-y-auto bg-game-bg p-5 pb-[calc(3rem+env(safe-area-inset-bottom))] md:pb-5 animate-fade-in [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="absolute inset-0 z-40 flex flex-col overflow-y-auto bg-game-bg p-5 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-5 animate-fade-in [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.16),transparent_30%),radial-gradient(circle_at_70%_82%,rgba(245,158,11,0.12),transparent_32%)]" />
         <div className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between gap-4 pb-6">
           <div className="flex items-center gap-4">
@@ -832,11 +832,11 @@ export default function App() {
           </div>
         </div>
 
-        <div className="relative z-10 mx-auto grid w-full max-w-5xl gap-5 md:grid-cols-[0.78fr_1.22fr]">
-          <div className="rounded-[1.5rem] border border-cyan-100/15 bg-white/[0.06] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-md md:p-4">
-            <div className="rounded-[1.35rem] border border-white/10 bg-gradient-to-b from-white/10 to-black/20 p-5 text-center md:p-5">
-              <div className="mx-auto mb-3 flex h-32 w-32 items-center justify-center rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.16),rgba(99,102,241,0.07)_45%,transparent_72%)] shadow-[0_0_46px_rgba(99,102,241,0.16)] md:h-28 md:w-28">
-                <div className="text-center text-5xl leading-[0.76] drop-shadow-2xl md:text-5xl">
+        <div className="relative z-10 mx-auto grid w-full max-w-5xl gap-5 md:grid-cols-[0.72fr_1.28fr]">
+          <div className="rounded-[1.5rem] border border-cyan-100/15 bg-white/[0.06] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-md md:p-3">
+            <div className="rounded-[1.35rem] border border-white/10 bg-gradient-to-b from-white/10 to-black/20 p-5 text-center md:p-4">
+              <div className="mx-auto mb-3 flex h-32 w-32 items-center justify-center rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.16),rgba(99,102,241,0.07)_45%,transparent_72%)] shadow-[0_0_46px_rgba(99,102,241,0.16)] md:h-24 md:w-24">
+                <div className="text-center text-5xl leading-[0.76] drop-shadow-2xl md:text-4xl">
                   <div>{avatar.head}</div>
                   <div>{avatar.body}</div>
                   <div>{avatar.legs}</div>
@@ -1366,7 +1366,7 @@ export default function App() {
             )}
 
             {/* Question Card */}
-            <div className="max-w-[min(90vw,38rem)] bg-white/95 text-game-bg px-4 py-2.5 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transform transition-all animate-in fade-in slide-in-from-top-4 duration-300 md:px-6 md:py-4 md:rounded-2xl">
+            <div className="max-w-[min(88vw,38rem)] bg-white/95 text-game-bg px-3 py-2 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transform transition-all animate-in fade-in slide-in-from-top-4 duration-300 md:px-6 md:py-4 md:rounded-2xl">
               <h1 className={`${getQuestionTextClass()} font-black tracking-tight text-center break-words`}>
                 {currentQuestion}
               </h1>
@@ -1384,15 +1384,14 @@ export default function App() {
       {/* Main Menu */}
       {gameState === GameState.MENU && (
         <div
-          className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-4 backdrop-blur-sm animate-fade-in"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-4 backdrop-blur-sm animate-fade-in"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="relative w-full max-w-md overflow-hidden bg-white/5 border border-white/10 p-6 pb-10 md:p-8 rounded-3xl shadow-2xl text-center max-h-[calc(100dvh-2rem-env(safe-area-inset-bottom))] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-slate-300/10" />
-            <div className="pointer-events-none absolute -right-16 -bottom-10 h-[26rem] w-[26rem] rounded-full bg-indigo-400/32 blur-3xl" />
-            <div className="pointer-events-none absolute right-0 bottom-0 h-96 w-96 rounded-full bg-purple-300/24 blur-2xl" />
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-slate-300/12 via-indigo-300/8 to-transparent" />
+          <div className="relative w-full max-w-md overflow-hidden bg-white/5 border border-white/10 p-6 pb-12 md:p-8 rounded-3xl shadow-2xl text-center max-h-[calc(100dvh-3rem-env(safe-area-inset-bottom))] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-white/[0.03]" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-slate-300/14" />
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-indigo-300/18 via-purple-300/12 to-transparent" />
             <div className="relative z-10">
             {menuView === 'main' ? (
               <>
