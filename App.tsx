@@ -1390,7 +1390,7 @@ export default function App() {
                 aria-label={t.seoLabel}
                 aria-describedby="brain-rush-seo-description"
               >
-                <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
+                <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-[#f1f5f9] to-[#a5b4fc] drop-shadow-[0_0_22px_rgba(99,102,241,0.18)]">
                   {subjectMode === SubjectMode.WORD ? t.wordMode : t.title}
                 </h1>
               </button>
