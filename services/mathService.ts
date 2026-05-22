@@ -55,6 +55,9 @@ const formatAnswer = (value: number): string => value.toString();
 
 const formatRemainderAnswer = (quotient: number, remainder: number): string => `${quotient}……${remainder}`;
 
+export const getMathDifficultyShape = (score: number, difficultySetting: Difficulty): DifficultyShape =>
+  DIFFICULTY_SHAPES[difficultySetting](score);
+
 export const generateQuestion = (
   score: number,
   difficultySetting: Difficulty = Difficulty.NORMAL,
@@ -65,7 +68,7 @@ export const generateQuestion = (
     allowNegative: false,
   }
 ): Question => {
-  const { baseDifficulty, optionCount } = DIFFICULTY_SHAPES[difficultySetting](score);
+  const { baseDifficulty, optionCount } = getMathDifficultyShape(score, difficultySetting);
   const difficulty = baseDifficulty;
   const rangePreset = getRangePreset(difficulty, tuning.numberRange);
   const operations = getOperationPool(difficulty, difficultySetting, tuning);

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "check": "tsc --noEmit",
-    "build": "npm run check && vite build",
+    "test:math": "tsx scripts/test-math-service.ts",
+    "test": "npm run test:math",
+    "build": "npm run check && npm run test && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "tsx": "^4.22.3",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
