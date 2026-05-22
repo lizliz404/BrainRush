@@ -257,17 +257,17 @@ const DIFFICULTY_CONFIG: Record<Difficulty, { lives: number; label: { en: string
 };
 
 const UNLOCKABLE_SETS = [
-  { score: 0,  label: { en: 'Rookie Runner', zh: '新手冲刺' }, head: '😃', body: '👕', legs: '👟' },
-  { score: 8,  label: { en: 'Focus Ninja', zh: '专注忍者' }, head: '🥷', body: '🥋', legs: '🧦' },
-  { score: 16, label: { en: 'Arcade Pilot', zh: '街机飞行员' }, head: '😎', body: '🧥', legs: '👖' },
-  { score: 24, label: { en: 'Math Bot', zh: '口算机器人' }, head: '🤖', body: '🦾', legs: '🦿' },
-  { score: 32, label: { en: 'Star Ranger', zh: '星际巡逻员' }, head: '👩‍🚀', body: '🚀', legs: '🥾' },
-  { score: 40, label: { en: 'Lab Genius', zh: '实验室天才' }, head: '🧠', body: '🥼', legs: '👟' },
-  { score: 50, label: { en: 'Rocket Champ', zh: '火箭冠军' }, head: '🚀', body: '🦸', legs: '⚡' },
-  { score: 65, label: { en: 'Final Boss', zh: '最终 Boss' }, head: '😈', body: '🛡️', legs: '🔥' },
+  { score: 0,  label: { en: 'Runner', zh: '冲刺' }, head: '😄', body: '🎽', legs: '👟' },
+  { score: 8,  label: { en: 'Ninja', zh: '忍者' }, head: '🥷', body: '🥋', legs: '🥾' },
+  { score: 16, label: { en: 'Skater', zh: '滑板' }, head: '😎', body: '🧥', legs: '🛹' },
+  { score: 24, label: { en: 'Robot', zh: '机器人' }, head: '🤖', body: '🔋', legs: '🦿' },
+  { score: 32, label: { en: 'Astronaut', zh: '宇航员' }, head: '👩‍🚀', body: '🛰️', legs: '🥾' },
+  { score: 40, label: { en: 'Scientist', zh: '科学家' }, head: '🧠', body: '🥼', legs: '🧪' },
+  { score: 50, label: { en: 'Hero', zh: '英雄' }, head: '🦸', body: '⚡', legs: '🥾' },
+  { score: 65, label: { en: 'Boss', zh: 'Boss' }, head: '😈', body: '🛡️', legs: '🔥' },
 ];
 
-const DEFAULT_AVATAR: AvatarConfig = { head: '😃', body: '👕', legs: '👟' };
+const DEFAULT_AVATAR: AvatarConfig = { head: '😄', body: '🎽', legs: '👟' };
 
 const QUICK_60_MATH_TUNING: GameTuning = {
   operationFocus: OperationFocus.RANDOM,
@@ -772,48 +772,47 @@ export default function App() {
   }, [gameState]);
 
   const renderCustomizeMenu = () => {
-    const renderPartSelector = (part: keyof AvatarConfig, label: string) => (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.18)] md:p-2.5">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">{label}</h3>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-slate-300">
-            {lang === 'zh' ? '按最高分解锁' : 'Score unlocks'}
-          </span>
-        </div>
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-6 md:grid-cols-8 md:gap-1">
-          {UNLOCKABLE_SETS.map((set, idx) => {
-            const isUnlocked = overallHighScore >= set.score;
-            const isSelected = avatar[part] === set[part];
-            return (
-              <button
-                key={idx}
-                disabled={!isUnlocked}
-                onClick={() => setAvatar(prev => ({ ...prev, [part]: set[part] }))}
-                className={`group relative flex aspect-square min-h-10 flex-col items-center justify-center overflow-hidden rounded-xl border text-xl transition-all duration-200 md:min-h-0 md:rounded-lg md:text-base
-                  ${isSelected ? 'border-cyan-200 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.28)] scale-[1.04]' : 'border-white/10 bg-black/20 hover:border-white/25 hover:bg-white/10'}
-                  ${!isUnlocked ? 'cursor-not-allowed opacity-40 grayscale' : 'cursor-pointer'}
-                `}
-                aria-label={`${set.label[lang]} ${label}`}
-                title={`${set.label[lang]} · ${t.score} ${set.score}`}
-              >
-                <span className="drop-shadow-md">{set[part]}</span>
-                {!isUnlocked && (
-                  <div className="absolute inset-0 rounded-xl bg-black/70 md:rounded-lg">
-                    <Lock size={12} className="absolute left-1/2 top-0.5 -translate-x-1/2 text-white/80 md:h-2 md:w-2" />
-                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[9px] font-black leading-none text-white/85 md:text-[7px]">{set.score}</span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
+    const renderOutfitButton = (set: typeof UNLOCKABLE_SETS[number]) => {
+      const isUnlocked = overallHighScore >= set.score;
+      const isSelected = avatar.head === set.head && avatar.body === set.body && avatar.legs === set.legs;
+      const selectOutfit = () => setAvatar({ head: set.head, body: set.body, legs: set.legs });
+
+      return (
+        <button
+          key={set.score}
+          disabled={!isUnlocked}
+          onClick={selectOutfit}
+          className={`group relative flex items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-200
+            ${isSelected ? 'border-cyan-200 bg-cyan-200 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.25)]' : 'border-white/10 bg-white/[0.04] hover:border-white/25 hover:bg-white/10'}
+            ${!isUnlocked ? 'cursor-not-allowed opacity-45 grayscale' : 'cursor-pointer'}
+          `}
+          aria-label={`${set.label[lang]} · ${t.score} ${set.score}`}
+          title={`${set.label[lang]} · ${t.score} ${set.score}`}
+        >
+          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border text-2xl leading-none ${isSelected ? 'border-slate-900/10 bg-white/70' : 'border-white/10 bg-black/20'}`}>
+            <span aria-hidden="true">{set.head}</span>
+            <span aria-hidden="true">{set.body}</span>
+            <span aria-hidden="true">{set.legs}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className={`truncate text-sm font-black ${isSelected ? 'text-slate-950' : 'text-white'}`}>{set.label[lang]}</div>
+            <div className={`mt-1 text-[11px] font-bold ${isSelected ? 'text-slate-700' : 'text-slate-400'}`}>
+              {isUnlocked ? (lang === 'zh' ? '可使用' : 'Unlocked') : `${t.score} ${set.score}`}
+            </div>
+          </div>
+          {!isUnlocked && (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/50 text-white/85">
+              <Lock size={14} />
+            </div>
+          )}
+        </button>
+      );
+    };
 
     return (
       <div className="absolute inset-0 z-40 flex flex-col overflow-y-auto bg-game-bg p-5 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-5 animate-fade-in [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.16),transparent_30%),radial-gradient(circle_at_70%_82%,rgba(245,158,11,0.12),transparent_32%)]" />
-        <div className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between gap-4 pb-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.12),transparent_30%)]" />
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl items-center justify-between gap-4 pb-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setGameState(GameState.MENU)}
@@ -832,32 +831,27 @@ export default function App() {
           </div>
         </div>
 
-        <div className="relative z-10 mx-auto grid w-full max-w-5xl gap-5 md:grid-cols-[0.72fr_1.28fr]">
-          <div className="rounded-[1.5rem] border border-cyan-100/15 bg-white/[0.06] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-md md:p-3">
-            <div className="rounded-[1.35rem] border border-white/10 bg-gradient-to-b from-white/10 to-black/20 p-5 text-center md:p-4">
-              <div className="mx-auto mb-3 flex h-32 w-32 items-center justify-center rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.16),rgba(99,102,241,0.07)_45%,transparent_72%)] shadow-[0_0_46px_rgba(99,102,241,0.16)] md:h-24 md:w-24">
-                <div className="text-center text-5xl leading-[0.76] drop-shadow-2xl md:text-4xl">
+        <div className="relative z-10 mx-auto grid w-full max-w-4xl gap-5 md:grid-cols-[0.8fr_1.2fr]">
+          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
+            <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-5 text-center">
+              <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-3xl bg-white/[0.06] text-center shadow-inner md:h-24 md:w-24">
+                <div className="text-5xl leading-[0.78] drop-shadow-2xl md:text-4xl">
                   <div>{avatar.head}</div>
                   <div>{avatar.body}</div>
                   <div>{avatar.legs}</div>
                 </div>
               </div>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-black text-game-bg shadow-lg">
-                <span>{lang === 'zh' ? '当前造型' : 'Current fit'}</span>
-                <span aria-hidden="true">✨</span>
-              </div>
-              <p className="mt-3 text-xs leading-5 text-slate-400 md:text-[11px] md:leading-5">
+              <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{lang === 'zh' ? '当前套装' : 'Current outfit'}</div>
+              <p className="mt-3 text-xs leading-5 text-slate-400">
                 {lang === 'zh'
-                  ? '赢分解锁更像游戏角色的造型；只用 emoji，轻、快、不添资产债。'
-                  : 'Scores unlock game-like emoji outfits: light, fast, and no asset debt.'}
+                  ? '整套选择，少折腾。解锁后直接换，不再拆成三排零件。'
+                  : 'Pick a complete outfit. Less fiddling, cleaner unlocks.'}
               </p>
             </div>
           </div>
 
-          <div className="space-y-3 md:space-y-3">
-            {renderPartSelector('head', t.head)}
-            {renderPartSelector('body', t.body)}
-            {renderPartSelector('legs', t.legs)}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {UNLOCKABLE_SETS.map(renderOutfitButton)}
           </div>
         </div>
       </div>
@@ -1389,9 +1383,9 @@ export default function App() {
           onClick={(event) => event.stopPropagation()}
         >
           <div className="relative w-full max-w-md overflow-hidden bg-white/5 border border-white/10 p-6 pb-12 md:p-8 rounded-3xl shadow-2xl text-center max-h-[calc(100dvh-3rem-env(safe-area-inset-bottom))] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-white/[0.03]" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-slate-300/14" />
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-indigo-300/18 via-purple-300/12 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-white/[0.025]" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-slate-300/16" />
+            <div className="pointer-events-none absolute bottom-0 right-0 h-[78%] w-[64%] bg-gradient-to-tl from-indigo-300/24 via-purple-300/16 to-transparent" />
             <div className="relative z-10">
             {menuView === 'main' ? (
               <>
