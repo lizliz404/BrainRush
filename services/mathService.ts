@@ -8,9 +8,9 @@ type DifficultyShape = {
 
 const DIFFICULTY_SHAPES: Record<Difficulty, (score: number) => DifficultyShape> = {
   [Difficulty.EASY]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 8), 5), optionCount: 3 }),
-  [Difficulty.NORMAL]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 5), 10), optionCount: 4 }),
-  [Difficulty.HARD]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 3) + 4, 16), optionCount: 5 }),
-  [Difficulty.DEVIL]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 2) + 7, 21), optionCount: 5 }),
+  [Difficulty.NORMAL]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 5) + 1, 10), optionCount: 4 }),
+  [Difficulty.HARD]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 3) + 5, 16), optionCount: 5 }),
+  [Difficulty.DEVIL]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 2) + 9, 21), optionCount: 5 }),
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
@@ -44,10 +44,10 @@ const getRangePreset = (difficulty: number, rangeMode: NumberRangeMode) => {
     case NumberRangeMode.WITHIN_20:
       return { min: 0, max: 20 };
     case NumberRangeMode.ABOVE_50:
-      return { min: 50, max: 120 + difficulty * 8 };
+      return { min: 50, max: 120 + difficulty * 10 };
     case NumberRangeMode.RANDOM:
     default:
-      return { min: 0, max: 10 + difficulty * 5 };
+      return { min: 0, max: 12 + difficulty * 6 };
   }
 };
 
@@ -120,9 +120,9 @@ export const generateQuestion = (
           : tuning.numberRange === NumberRangeMode.WITHIN_20
             ? 12
             : tuning.numberRange === NumberRangeMode.ABOVE_50
-              ? 18
-              : clamp(6 + difficulty, 8, 18);
-      const factorMin = tuning.numberRange === NumberRangeMode.ABOVE_50 ? 4 : difficultySetting === Difficulty.EASY ? 2 : 3;
+              ? 22
+              : clamp(8 + difficulty, 10, 22);
+      const factorMin = tuning.numberRange === NumberRangeMode.ABOVE_50 ? 6 : difficultySetting === Difficulty.EASY ? 2 : 4;
       a = getRandomInt(factorMin, factorMax);
       b = getRandomInt(factorMin, factorMax);
       answerValue = a * b;
@@ -141,7 +141,7 @@ export const generateQuestion = (
           ? 10
           : tuning.numberRange === NumberRangeMode.WITHIN_20
             ? 12
-            : 14;
+            : 16;
       b = getRandomInt(2, divisorMax);
       const quotient =
         tuning.numberRange === NumberRangeMode.WITHIN_10
@@ -149,8 +149,8 @@ export const generateQuestion = (
           : tuning.numberRange === NumberRangeMode.WITHIN_20
             ? getRandomInt(2, 20)
             : tuning.numberRange === NumberRangeMode.ABOVE_50
-              ? getRandomInt(50, 100 + difficulty * 4)
-              : getRandomInt(difficultySetting === Difficulty.EASY ? 2 : 3, clamp(9 + difficulty, 10, 28));
+              ? getRandomInt(50, 120 + difficulty * 5)
+              : getRandomInt(difficultySetting === Difficulty.EASY ? 2 : 4, clamp(10 + difficulty, 12, 32));
       const remainder = tuning.allowRemainder ? getRandomInt(1, b - 1) : 0;
       answerValue = quotient;
       answer = tuning.allowRemainder
@@ -180,12 +180,12 @@ export const generateQuestion = (
 
     const offsetRange =
       tuning.numberRange === NumberRangeMode.ABOVE_50
-        ? 20
+        ? 24
         : difficultySetting === Difficulty.DEVIL
-          ? 10
+          ? 12
           : difficulty > 10
-            ? 8
-            : 5;
+            ? 10
+            : 6;
     const offset = Math.floor(Math.random() * offsetRange) + 1;
     const direction = Math.random() > 0.5 ? 1 : -1;
     const wrong = answerValue + (offset * direction);

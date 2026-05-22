@@ -257,21 +257,21 @@ const DIFFICULTY_CONFIG: Record<Difficulty, { lives: number; label: { en: string
 };
 
 const UNLOCKABLE_SETS = [
-  { score: 0, label: { en: 'Rookie Runner', zh: '新手冲刺' }, head: '😃', body: '🦺', legs: '👟' },
-  { score: 8, label: { en: 'Focus Ninja', zh: '专注忍者' }, head: '🥷', body: '🥋', legs: '🧦' },
+  { score: 0,  label: { en: 'Rookie Runner', zh: '新手冲刺' }, head: '😃', body: '👕', legs: '👟' },
+  { score: 8,  label: { en: 'Focus Ninja', zh: '专注忍者' }, head: '🥷', body: '🥋', legs: '🧦' },
   { score: 16, label: { en: 'Arcade Pilot', zh: '街机飞行员' }, head: '😎', body: '🧥', legs: '👖' },
   { score: 24, label: { en: 'Math Bot', zh: '口算机器人' }, head: '🤖', body: '🦾', legs: '🦿' },
-  { score: 32, label: { en: 'Star Ranger', zh: '星际巡逻员' }, head: '👩‍🚀', body: '🦺', legs: '🥾' },
+  { score: 32, label: { en: 'Star Ranger', zh: '星际巡逻员' }, head: '👩‍🚀', body: '🚀', legs: '🥾' },
   { score: 40, label: { en: 'Lab Genius', zh: '实验室天才' }, head: '🧠', body: '🥼', legs: '👟' },
   { score: 50, label: { en: 'Rocket Champ', zh: '火箭冠军' }, head: '🚀', body: '🦸', legs: '⚡' },
   { score: 65, label: { en: 'Final Boss', zh: '最终 Boss' }, head: '😈', body: '🛡️', legs: '🔥' },
 ];
 
-const DEFAULT_AVATAR: AvatarConfig = { head: '😃', body: '🦺', legs: '👟' };
+const DEFAULT_AVATAR: AvatarConfig = { head: '😃', body: '👕', legs: '👟' };
 
 const QUICK_60_MATH_TUNING: GameTuning = {
   operationFocus: OperationFocus.RANDOM,
-  numberRange: NumberRangeMode.WITHIN_20,
+  numberRange: NumberRangeMode.RANDOM,
   allowRemainder: false,
   allowNegative: false,
 };
@@ -773,14 +773,14 @@ export default function App() {
 
   const renderCustomizeMenu = () => {
     const renderPartSelector = (part: keyof AvatarConfig, label: string) => (
-      <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+        <div className="mb-2 flex items-center justify-between gap-3">
           <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">{label}</h3>
-          <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300">
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-slate-300">
             {lang === 'zh' ? '按最高分解锁' : 'Score unlocks'}
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-4">
+        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-6 md:grid-cols-5">
           {UNLOCKABLE_SETS.map((set, idx) => {
             const isUnlocked = overallHighScore >= set.score;
             const isSelected = avatar[part] === set[part];
@@ -789,21 +789,18 @@ export default function App() {
                 key={idx}
                 disabled={!isUnlocked}
                 onClick={() => setAvatar(prev => ({ ...prev, [part]: set[part] }))}
-                className={`group relative flex aspect-square min-h-16 flex-col items-center justify-center overflow-hidden rounded-2xl border text-3xl transition-all duration-200
-                  ${isSelected ? 'border-cyan-200 bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.32)] scale-[1.04]' : 'border-white/10 bg-black/20 hover:border-white/25 hover:bg-white/10'}
-                  ${!isUnlocked ? 'cursor-not-allowed opacity-45 grayscale' : 'cursor-pointer'}
+                className={`group relative flex aspect-square min-h-10 flex-col items-center justify-center overflow-hidden rounded-xl border text-xl transition-all duration-200
+                  ${isSelected ? 'border-cyan-200 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.28)] scale-[1.04]' : 'border-white/10 bg-black/20 hover:border-white/25 hover:bg-white/10'}
+                  ${!isUnlocked ? 'cursor-not-allowed opacity-40 grayscale' : 'cursor-pointer'}
                 `}
                 aria-label={`${set.label[lang]} ${label}`}
                 title={`${set.label[lang]} · ${t.score} ${set.score}`}
               >
-                <span className="drop-shadow-lg">{set[part]}</span>
-                <span className={`mt-1 max-w-full truncate px-1 text-[9px] font-black leading-none ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
-                  {set.label[lang]}
-                </span>
+                <span className="drop-shadow-md">{set[part]}</span>
                 {!isUnlocked && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/70">
-                    <Lock size={16} className="mb-1 text-white/80" />
-                    <span className="text-[10px] font-black text-white/85">{set.score}</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-black/70">
+                    <Lock size={12} className="mb-0.5 text-white/80" />
+                    <span className="text-[9px] font-black text-white/85">{set.score}</span>
                   </div>
                 )}
               </button>
@@ -838,8 +835,8 @@ export default function App() {
         <div className="relative z-10 mx-auto grid w-full max-w-5xl gap-6 md:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-[2rem] border border-cyan-100/15 bg-white/[0.06] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.32)] backdrop-blur-md">
             <div className="rounded-[1.75rem] border border-white/10 bg-gradient-to-b from-white/10 to-black/20 p-8 text-center">
-              <div className="mx-auto mb-5 flex h-52 w-52 items-center justify-center rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.18),rgba(99,102,241,0.08)_45%,transparent_72%)] shadow-[0_0_80px_rgba(99,102,241,0.18)]">
-                <div className="text-center text-8xl leading-[0.76] drop-shadow-2xl md:text-9xl">
+              <div className="mx-auto mb-4 flex h-40 w-40 items-center justify-center rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.18),rgba(99,102,241,0.08)_45%,transparent_72%)] shadow-[0_0_60px_rgba(99,102,241,0.18)]">
+                <div className="text-center text-6xl leading-[0.76] drop-shadow-2xl md:text-7xl">
                   <div>{avatar.head}</div>
                   <div>{avatar.body}</div>
                   <div>{avatar.legs}</div>
@@ -1392,9 +1389,9 @@ export default function App() {
           onClick={(event) => event.stopPropagation()}
         >
           <div className="relative w-full max-w-md overflow-hidden bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="pointer-events-none absolute -right-28 bottom-10 h-72 w-72 rounded-full bg-indigo-400/24 blur-3xl" />
-            <div className="pointer-events-none absolute right-0 bottom-0 h-56 w-56 rounded-full bg-purple-300/18 blur-2xl" />
-            <div className="pointer-events-none absolute inset-x-8 bottom-20 h-28 rounded-full bg-slate-300/10 blur-3xl" />
+            <div className="pointer-events-none absolute -right-20 -bottom-8 h-96 w-96 rounded-full bg-indigo-400/28 blur-3xl" />
+            <div className="pointer-events-none absolute -right-4 -bottom-4 h-80 w-80 rounded-full bg-purple-300/22 blur-2xl" />
+            <div className="pointer-events-none absolute inset-x-4 -bottom-4 h-36 rounded-full bg-slate-300/12 blur-3xl" />
             <div className="relative z-10">
             {menuView === 'main' ? (
               <>
