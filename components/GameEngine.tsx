@@ -352,7 +352,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
     if (difficultyRef.current === Difficulty.HARD) speedMultiplier = 1.4;
     if (difficultyRef.current === Difficulty.DEVIL) speedMultiplier = 1.9;
     if (playModeRef.current === PlayMode.QUICK_60) {
-      speedMultiplier = Math.max(speedMultiplier, 1.4);
+      speedMultiplier = Math.max(speedMultiplier, 1.7);
     }
 
     const baseDropSpeed =

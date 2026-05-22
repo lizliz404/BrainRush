@@ -76,7 +76,7 @@ const TRANSLATIONS = {
     timer: 'Timer',
     accuracy: 'Accuracy',
     quickStart: '60s Timed Mode',
-    quickModeNote: 'Timed mode for the current subject: Normal questions + unlimited lives + Hard-speed drops.',
+    quickModeNote: 'Timed mode for the current subject: harder starter questions + unlimited lives + faster drops.',
     openAdvanced: 'Advanced',
     startGame: 'START GAME',
     customize: 'Customize Avatar',
@@ -180,7 +180,7 @@ const TRANSLATIONS = {
     timer: '倒计时',
     accuracy: '正确率',
     quickStart: '60 秒计时模式',
-    quickModeNote: '当前学科的计时模式：普通题目 + 无限命 + 困难档下落速度。',
+    quickModeNote: '当前学科的计时模式：起步题更难 + 无限命 + 更快下落速度。',
     openAdvanced: '高级调节',
     startGame: '开始游戏',
     customize: '自定义外观',
@@ -257,15 +257,24 @@ const DIFFICULTY_CONFIG: Record<Difficulty, { lives: number; label: { en: string
 };
 
 const UNLOCKABLE_SETS = [
-  { score: 0, head: '😃', body: '👕', legs: '👖' },
-  { score: 10, head: '😎', body: '🧥', legs: '🩳' },
-  { score: 20, head: '🤖', body: '🥋', legs: '🦿' },
-  { score: 30, head: '👽', body: '🥼', legs: '👢' },
-  { score: 40, head: '🤠', body: '👔', legs: '🩲' },
-  { score: 50, head: '🎃', body: '👗', legs: '👠' },
+  { score: 0, label: { en: 'Rookie Runner', zh: '新手冲刺' }, head: '😃', body: '🦺', legs: '👟' },
+  { score: 8, label: { en: 'Focus Ninja', zh: '专注忍者' }, head: '🥷', body: '🥋', legs: '🧦' },
+  { score: 16, label: { en: 'Arcade Pilot', zh: '街机飞行员' }, head: '😎', body: '🧥', legs: '👖' },
+  { score: 24, label: { en: 'Math Bot', zh: '口算机器人' }, head: '🤖', body: '🦾', legs: '🦿' },
+  { score: 32, label: { en: 'Star Ranger', zh: '星际巡逻员' }, head: '👩‍🚀', body: '🦺', legs: '🥾' },
+  { score: 40, label: { en: 'Lab Genius', zh: '实验室天才' }, head: '🧠', body: '🥼', legs: '👟' },
+  { score: 50, label: { en: 'Rocket Champ', zh: '火箭冠军' }, head: '🚀', body: '🦸', legs: '⚡' },
+  { score: 65, label: { en: 'Final Boss', zh: '最终 Boss' }, head: '😈', body: '🛡️', legs: '🔥' },
 ];
 
-const DEFAULT_AVATAR: AvatarConfig = { head: '😃', body: '👕', legs: '👖' };
+const DEFAULT_AVATAR: AvatarConfig = { head: '😃', body: '🦺', legs: '👟' };
+
+const QUICK_60_MATH_TUNING: GameTuning = {
+  operationFocus: OperationFocus.RANDOM,
+  numberRange: NumberRangeMode.WITHIN_20,
+  allowRemainder: false,
+  allowNegative: false,
+};
 
 const DEFAULT_TUNING: GameTuning = {
   operationFocus: OperationFocus.RANDOM,
@@ -697,8 +706,8 @@ export default function App() {
     initAudio();
     stopMenuBgm();
     setPlayMode(PlayMode.QUICK_60);
-    setDifficulty(Difficulty.NORMAL);
-    setTuning(DEFAULT_TUNING);
+    setDifficulty(Difficulty.HARD);
+    setTuning(QUICK_60_MATH_TUNING);
     setScore(0);
     setLives(Number.MAX_SAFE_INTEGER);
     setAttempts(0);
@@ -764,9 +773,14 @@ export default function App() {
 
   const renderCustomizeMenu = () => {
     const renderPartSelector = (part: keyof AvatarConfig, label: string) => (
-      <div className="mb-6">
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{label}</h3>
-        <div className="flex gap-3 overflow-x-auto pb-2 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">{label}</h3>
+          <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300">
+            {lang === 'zh' ? '按最高分解锁' : 'Score unlocks'}
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-4">
           {UNLOCKABLE_SETS.map((set, idx) => {
             const isUnlocked = overallHighScore >= set.score;
             const isSelected = avatar[part] === set[part];
@@ -775,16 +789,21 @@ export default function App() {
                 key={idx}
                 disabled={!isUnlocked}
                 onClick={() => setAvatar(prev => ({ ...prev, [part]: set[part] }))}
-                className={`relative shrink-0 w-16 h-16 rounded-2xl text-3xl flex items-center justify-center transition-all snap-center
-                  ${isSelected ? 'bg-game-accent border-2 border-white shadow-lg scale-110' : 'bg-white/10 border border-white/5 hover:bg-white/20'}
-                  ${!isUnlocked ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}
+                className={`group relative flex aspect-square min-h-16 flex-col items-center justify-center overflow-hidden rounded-2xl border text-3xl transition-all duration-200
+                  ${isSelected ? 'border-cyan-200 bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.32)] scale-[1.04]' : 'border-white/10 bg-black/20 hover:border-white/25 hover:bg-white/10'}
+                  ${!isUnlocked ? 'cursor-not-allowed opacity-45 grayscale' : 'cursor-pointer'}
                 `}
+                aria-label={`${set.label[lang]} ${label}`}
+                title={`${set.label[lang]} · ${t.score} ${set.score}`}
               >
-                {set[part]}
+                <span className="drop-shadow-lg">{set[part]}</span>
+                <span className={`mt-1 max-w-full truncate px-1 text-[9px] font-black leading-none ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
+                  {set.label[lang]}
+                </span>
                 {!isUnlocked && (
-                  <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center flex-col">
-                    <Lock size={16} className="text-white/80 mb-1" />
-                    <span className="text-[10px] font-bold text-white/80">{set.score}</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/70">
+                    <Lock size={16} className="mb-1 text-white/80" />
+                    <span className="text-[10px] font-black text-white/85">{set.score}</span>
                   </div>
                 )}
               </button>
@@ -795,32 +814,50 @@ export default function App() {
     );
 
     return (
-      <div className="absolute inset-0 z-40 flex flex-col bg-game-bg p-6 overflow-y-auto animate-fade-in [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="flex items-center mb-8">
-          <button 
-            onClick={() => setGameState(GameState.MENU)}
-            className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <h2 className="text-3xl font-black ml-4">{t.lockerRoom}</h2>
+      <div className="absolute inset-0 z-40 flex flex-col overflow-y-auto bg-game-bg p-5 animate-fade-in [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.16),transparent_30%),radial-gradient(circle_at_70%_82%,rgba(245,158,11,0.12),transparent_32%)]" />
+        <div className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between gap-4 pb-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setGameState(GameState.MENU)}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 shadow-lg transition-colors hover:bg-white/20"
+              aria-label={t.backToMenu}
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200/70">Brain Rush</p>
+              <h2 className="text-3xl font-black md:text-4xl">{t.lockerRoom}</h2>
+            </div>
+          </div>
+          <div className="rounded-full border border-white/10 bg-black/25 px-4 py-2 text-sm font-black text-slate-200 shadow-lg">
+            {t.best}: {overallHighScore}
+          </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto w-full">
-          {/* Avatar Preview */}
-          <div className="flex-1 bg-white/5 rounded-3xl p-8 flex flex-col items-center justify-center border border-white/10">
-            <div className="text-center space-y-[-1rem] text-8xl drop-shadow-2xl mb-8">
-              <div>{avatar.head}</div>
-              <div>{avatar.body}</div>
-              <div>{avatar.legs}</div>
-            </div>
-            <div className="bg-white/10 px-6 py-2 rounded-full text-sm font-bold text-slate-300">
-              {t.best}: {overallHighScore}
+        <div className="relative z-10 mx-auto grid w-full max-w-5xl gap-6 md:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-[2rem] border border-cyan-100/15 bg-white/[0.06] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.32)] backdrop-blur-md">
+            <div className="rounded-[1.75rem] border border-white/10 bg-gradient-to-b from-white/10 to-black/20 p-8 text-center">
+              <div className="mx-auto mb-5 flex h-52 w-52 items-center justify-center rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.18),rgba(99,102,241,0.08)_45%,transparent_72%)] shadow-[0_0_80px_rgba(99,102,241,0.18)]">
+                <div className="text-center text-8xl leading-[0.76] drop-shadow-2xl md:text-9xl">
+                  <div>{avatar.head}</div>
+                  <div>{avatar.body}</div>
+                  <div>{avatar.legs}</div>
+                </div>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-game-bg shadow-xl">
+                <span>{lang === 'zh' ? '当前造型' : 'Current fit'}</span>
+                <span aria-hidden="true">✨</span>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-400">
+                {lang === 'zh'
+                  ? '赢分解锁更像游戏角色的造型；只用 emoji，轻、快、不添资产债。'
+                  : 'Scores unlock game-like emoji outfits: light, fast, and no asset debt.'}
+              </p>
             </div>
           </div>
 
-          {/* Selectors */}
-          <div className="flex-1">
+          <div className="space-y-4">
             {renderPartSelector('head', t.head)}
             {renderPartSelector('body', t.body)}
             {renderPartSelector('legs', t.legs)}
@@ -1014,7 +1051,7 @@ export default function App() {
 
     LOCAL_DATA_KEYS.forEach(key => localStorage.removeItem(key));
     setHighScores({ [SubjectMode.MATH]: 0, [SubjectMode.WORD]: 0 });
-    setAvatar({ head: '😃', body: '👕', legs: '👖' });
+    setAvatar(DEFAULT_AVATAR);
     setTuning(DEFAULT_TUNING);
     setWordTuning(DEFAULT_WORD_TUNING);
     setMistakeBook({ [SubjectMode.MATH]: [], [SubjectMode.WORD]: [] });
@@ -1354,7 +1391,11 @@ export default function App() {
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="relative w-full max-w-md bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="relative w-full max-w-md overflow-hidden bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="pointer-events-none absolute -right-28 bottom-10 h-72 w-72 rounded-full bg-indigo-400/24 blur-3xl" />
+            <div className="pointer-events-none absolute right-0 bottom-0 h-56 w-56 rounded-full bg-purple-300/18 blur-2xl" />
+            <div className="pointer-events-none absolute inset-x-8 bottom-20 h-28 rounded-full bg-slate-300/10 blur-3xl" />
+            <div className="relative z-10">
             {menuView === 'main' ? (
               <>
             <div className="absolute left-4 top-4 z-20">
@@ -1725,11 +1766,10 @@ export default function App() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
-
-      {/* Game Over Screen */}
       {gameState === GameState.GAME_OVER && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-red-900/80 p-4 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-md bg-white text-game-bg p-6 md:p-8 rounded-3xl shadow-2xl text-center max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

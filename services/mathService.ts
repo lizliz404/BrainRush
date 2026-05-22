@@ -1,6 +1,20 @@
 import { Question, Difficulty, GameTuning, NumberRangeMode, OperationFocus } from '../types';
 import { shuffleArray } from '../utils/random';
 
+type DifficultyShape = {
+  baseDifficulty: number;
+  optionCount: number;
+};
+
+const DIFFICULTY_SHAPES: Record<Difficulty, (score: number) => DifficultyShape> = {
+  [Difficulty.EASY]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 8), 5), optionCount: 3 }),
+  [Difficulty.NORMAL]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 5), 10), optionCount: 4 }),
+  [Difficulty.HARD]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 3) + 4, 16), optionCount: 5 }),
+  [Difficulty.DEVIL]: (score) => ({ baseDifficulty: Math.min(Math.floor(score / 2) + 7, 21), optionCount: 5 }),
+};
+
+const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+
 const getOperationPool = (difficulty: number, difficultySetting: Difficulty, tuning: GameTuning): string[] => {
   if (tuning.operationFocus === OperationFocus.ADD_SUB) {
     return ['+', '-'];
@@ -51,24 +65,7 @@ export const generateQuestion = (
     allowNegative: false,
   }
 ): Question => {
-  // Difficulty scales with score and difficulty setting
-  let baseDifficulty = 0;
-  let optionCount = 3;
-  
-  if (difficultySetting === Difficulty.EASY) {
-    baseDifficulty = Math.min(Math.floor(score / 8), 5);
-    optionCount = 3;
-  } else if (difficultySetting === Difficulty.NORMAL) {
-    baseDifficulty = Math.min(Math.floor(score / 5), 10);
-    optionCount = 4;
-  } else if (difficultySetting === Difficulty.HARD) {
-    baseDifficulty = Math.min(Math.floor(score / 3) + 3, 15);
-    optionCount = 5;
-  } else if (difficultySetting === Difficulty.DEVIL) {
-    baseDifficulty = Math.min(Math.floor(score / 2) + 6, 20);
-    optionCount = 5;
-  }
-
+  const { baseDifficulty, optionCount } = DIFFICULTY_SHAPES[difficultySetting](score);
   const difficulty = baseDifficulty;
   const rangePreset = getRangePreset(difficulty, tuning.numberRange);
   const operations = getOperationPool(difficulty, difficultySetting, tuning);
@@ -121,8 +118,8 @@ export const generateQuestion = (
             ? 12
             : tuning.numberRange === NumberRangeMode.ABOVE_50
               ? 18
-              : 5 + difficulty;
-      const factorMin = tuning.numberRange === NumberRangeMode.ABOVE_50 ? 4 : 2;
+              : clamp(6 + difficulty, 8, 18);
+      const factorMin = tuning.numberRange === NumberRangeMode.ABOVE_50 ? 4 : difficultySetting === Difficulty.EASY ? 2 : 3;
       a = getRandomInt(factorMin, factorMax);
       b = getRandomInt(factorMin, factorMax);
       answerValue = a * b;
@@ -150,7 +147,7 @@ export const generateQuestion = (
             ? getRandomInt(2, 20)
             : tuning.numberRange === NumberRangeMode.ABOVE_50
               ? getRandomInt(50, 100 + difficulty * 4)
-              : getRandomInt(2, 8 + difficulty);
+              : getRandomInt(difficultySetting === Difficulty.EASY ? 2 : 3, clamp(9 + difficulty, 10, 28));
       const remainder = tuning.allowRemainder ? getRandomInt(1, b - 1) : 0;
       answerValue = quotient;
       answer = tuning.allowRemainder
