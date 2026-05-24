@@ -11,7 +11,7 @@ import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
 type Language = 'en' | 'zh';
 type DeferredPointerAction = { confirm: () => void; message?: string };
 
-const PEP_WORDS_URL = 'https://pep-words.lizliz.xyz';
+const PEP_WORDS_URL = 'https://pep-words.brainrush.run';
 const TRANSITION_MS = 220;
 const CONFETTI_COLORS = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#34d399', '#fb7185'];
 
@@ -639,33 +639,13 @@ export default function App() {
     typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const shouldRunTooltipAction = (
-    key: string,
-    event: React.MouseEvent<HTMLElement>,
-    action?: DeferredPointerAction,
+    _key: string,
+    _event: React.MouseEvent<HTMLElement>,
+    _action?: DeferredPointerAction,
   ) => {
-    if (isFinePointer()) {
-      setDeferredPointerAction(null);
-      return true;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const now = window.performance.now();
-    touchTooltipRef.current = { key, shownAt: now };
-    setActiveTooltip(key);
-    setDeferredPointerAction(action ?? null);
-
-    window.setTimeout(() => {
-      if (
-        touchTooltipRef.current.key === key &&
-        window.performance.now() - touchTooltipRef.current.shownAt >= INTERACTION_CONFIG.touchTooltipMs - 50
-      ) {
-        touchTooltipRef.current = { key: '', shownAt: 0 };
-        setActiveTooltip(current => (current === key ? null : current));
-      }
-    }, INTERACTION_CONFIG.touchTooltipMs);
-    return false;
+    // Always execute immediately on all devices — single tap is enough.
+    setDeferredPointerAction(null);
+    return true;
   };
 
   const handleAmbientPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {

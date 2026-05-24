@@ -17,9 +17,8 @@ Keep Brain Rush stable, fast, and maintainable. The desired end state is a matur
 
 ## Mobile interaction rules
 
-- Do not implement mobile-only double-click/double-tap confirmation.
-- For compact top-bar actions on coarse pointers, use: first tap shows tooltip/state, then an explicit visible confirm button performs the action; or use a clear long-press pattern with explicit code comments and cancellation behavior.
-- Desktop/fine pointer clicks may execute immediately.
+- Mobile touch actions execute immediately on single tap — no confirm step, no tooltip-then-confirm flow.
+- Use standard `onClick` handlers; no deferred pointer actions or double-tap patterns.
 - Avoid interaction patterns that depend on browser double-tap timing or page zoom behavior.
 
 ## Particle and visual tuning rules
