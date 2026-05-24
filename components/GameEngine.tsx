@@ -35,6 +35,15 @@ interface GameEngineProps {
   onQuestionMistake: (mistake: MistakeRecord) => void;
 }
 
+const PLAYER_VISUAL_CONFIG = {
+  mobileSizeRatio: 0.115,
+  desktopSizeRatio: 0.074,
+  minSizePx: 34,
+  collisionHalfWidthRatio: 0.62,
+  collisionTopRatio: 0.48,
+  collisionBottomRatio: 0.68,
+} as const;
+
 const GameEngine: React.FC<GameEngineProps> = ({ 
   gameState, 
   difficulty,
@@ -151,8 +160,11 @@ const GameEngine: React.FC<GameEngineProps> = ({
       laneWidthPct * (isPortrait ? 0.9 : 0.72),
       isPortrait ? 23 : 14
     );
-    const playerSizePx = Math.max(shortSide * (isPortrait ? 0.1 : 0.07), 30);
-    const playerHalfPct = Math.max((playerSizePx / w) * 52, 4.2);
+    const playerSizePx = Math.max(
+      shortSide * (isPortrait ? PLAYER_VISUAL_CONFIG.mobileSizeRatio : PLAYER_VISUAL_CONFIG.desktopSizeRatio),
+      PLAYER_VISUAL_CONFIG.minSizePx
+    );
+    const playerHalfPct = Math.max((playerSizePx / w) * 54, 4.4);
 
     return {
       isPortrait,
@@ -388,10 +400,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const headY = py - spacing;
     const legsY = py + spacing;
 
-    const playerLeft = px - size * 0.6;
-    const playerRight = px + size * 0.6;
-    const playerTop = headY - size * 0.4;
-    const playerBottom = legsY + size * 0.4;
+    const playerLeft = px - size * PLAYER_VISUAL_CONFIG.collisionHalfWidthRatio;
+    const playerRight = px + size * PLAYER_VISUAL_CONFIG.collisionHalfWidthRatio;
+    const playerTop = headY - size * PLAYER_VISUAL_CONFIG.collisionTopRatio;
+    const playerBottom = legsY + size * PLAYER_VISUAL_CONFIG.collisionBottomRatio;
 
     for (const block of blocksRef.current) {
       block.y += baseDropSpeed;
