@@ -4,9 +4,10 @@ import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberR
 import GameEngine from './components/GameEngine';
 import BrainRushLogoIcon from './components/BrainRushLogoIcon';
 import PepWordsLogoIcon from './components/PepWordsLogoIcon';
+import PixelPlayerPreview from './components/PixelPlayerPreview';
 import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, MessageCircle } from 'lucide-react';
 import { ArrowLeftStartOnRectangleIcon, BookOpenIcon, LanguageIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { initAudio, startMenuBgm, stopMenuBgm } from './services/audioService';
+import { initAudio, startGameBgm, startMenuBgm, stopBgm } from './services/audioService';
 
 type Language = 'en' | 'zh';
 type DeferredPointerAction = { confirm: () => void; message?: string };
@@ -668,7 +669,7 @@ export default function App() {
 
   const startGame = () => {
     initAudio();
-    stopMenuBgm();
+    startGameBgm();
     setPlayMode(PlayMode.CLASSIC);
     setScore(0);
     setLives(DIFFICULTY_CONFIG[difficulty].lives);
@@ -684,7 +685,7 @@ export default function App() {
 
   const startQuickPractice = () => {
     initAudio();
-    stopMenuBgm();
+    startGameBgm();
     setPlayMode(PlayMode.QUICK_60);
     setDifficulty(Difficulty.DEVIL);
     setTuning(QUICK_60_MATH_TUNING);
@@ -742,8 +743,10 @@ export default function App() {
       bgmTimer = window.setTimeout(() => {
         startMenuBgm();
       }, 1000);
+    } else if (gameState === GameState.PLAYING) {
+      startGameBgm();
     } else {
-      stopMenuBgm();
+      stopBgm();
     }
 
     return () => {
@@ -769,10 +772,8 @@ export default function App() {
           aria-label={`${set.label[lang]} · ${t.score} ${set.score}`}
           title={`${set.label[lang]} · ${t.score} ${set.score}`}
         >
-          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border text-2xl leading-none ${isSelected ? 'border-slate-900/10 bg-white/70' : 'border-white/10 bg-black/20'}`}>
-            <span aria-hidden="true">{set.head}</span>
-            <span aria-hidden="true">{set.body}</span>
-            <span aria-hidden="true">{set.legs}</span>
+          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border ${isSelected ? 'border-slate-900/10 bg-white/70' : 'border-white/10 bg-black/20'}`}>
+            <PixelPlayerPreview avatar={{ head: set.head, body: set.body, legs: set.legs }} className="h-12 w-12" />
           </div>
           <div className="min-w-0 flex-1">
             <div className={`truncate text-sm font-black ${isSelected ? 'text-slate-950' : 'text-white'}`}>{set.label[lang]}</div>
@@ -815,11 +816,7 @@ export default function App() {
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
             <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-5 text-center">
               <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-3xl bg-white/[0.06] text-center shadow-inner md:h-24 md:w-24">
-                <div className="text-5xl leading-[0.78] drop-shadow-2xl md:text-4xl">
-                  <div>{avatar.head}</div>
-                  <div>{avatar.body}</div>
-                  <div>{avatar.legs}</div>
-                </div>
+                <PixelPlayerPreview avatar={avatar} className="h-28 w-28 md:h-24 md:w-24" />
               </div>
               <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{lang === 'zh' ? '当前套装' : 'Current outfit'}</div>
               <p className="mt-3 text-xs leading-5 text-slate-400">
@@ -969,7 +966,7 @@ export default function App() {
     resetSessionMistakes();
     setGameState(GameState.MENU);
     setMenuView('main');
-    stopMenuBgm();
+    stopBgm();
   };
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTun
 import { generateQuestion } from '../services/mathService';
 import { generateWordQuestionWithTuning } from '../services/wordService';
 import { playSuccessSound, playErrorSound } from '../services/audioService';
+import { drawPixelPlayer, PlayerMood } from './pixelPlayer';
 
 interface EffectEntity {
   id: number;
@@ -78,6 +79,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const effectsRef = useRef<EffectEntity[]>([]);
   const shakeRef = useRef<number>(0);
   const avatarRef = useRef<AvatarConfig>(avatar);
+  const playerMoodRef = useRef<{ mood: PlayerMood; until: number }>({ mood: 'idle', until: 0 });
   const isDeadRef = useRef<boolean>(false);
   
   const isMovingLeft = useRef(false);
@@ -318,6 +320,22 @@ const GameEngine: React.FC<GameEngineProps> = ({
     requestRef.current = requestAnimationFrame(animate);
   };
 
+  const setPlayerMood = (mood: PlayerMood, durationMs: number) => {
+    playerMoodRef.current = {
+      mood,
+      until: performance.now() + durationMs,
+    };
+  };
+
+  const getPlayerMood = () => {
+    const current = playerMoodRef.current;
+    if (current.mood !== 'idle' && performance.now() > current.until) {
+      playerMoodRef.current = { mood: 'idle', until: 0 };
+      return 'idle';
+    }
+    return current.mood;
+  };
+
   const updateEffects = (dt: number) => {
     const timeScale = dt / 16.66;
     if (shakeRef.current > 0) {
@@ -418,6 +436,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         attemptsRef.current += 1;
         correctRef.current += 1;
         playSuccessSound();
+        setPlayerMood('happy', 460);
         scoreRef.current += 1;
         onScoreUpdateRef.current(scoreRef.current);
         
@@ -455,6 +474,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         attemptsRef.current += 1;
         recordMistake(hitBlock.value);
         playErrorSound();
+        setPlayerMood('hurt', 620);
         shakeRef.current = 500; 
 
         const isTimedMode = playModeRef.current === PlayMode.QUICK_60;
@@ -510,6 +530,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
        attemptsRef.current += 1;
        recordMistake(null);
        playErrorSound();
+       setPlayerMood('miss', 760);
        shakeRef.current = 400;
 
        const isTimedMode = playModeRef.current === PlayMode.QUICK_60;
@@ -571,21 +592,16 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `${size * 0.8}px serif`; 
-    
-    const spacing = size * 0.55; 
-    const headY = py - spacing;
-    const bodyY = py;
-    const legsY = py + spacing;
 
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 10;
-    
-    ctx.fillText(avatarRef.current.head, px, headY);
-    ctx.fillText(avatarRef.current.body, px, bodyY);
-    ctx.fillText(avatarRef.current.legs, px, legsY);
-
-    ctx.shadowBlur = 0;
+    const mood = getPlayerMood();
+    drawPixelPlayer(ctx, {
+      x: px,
+      y: py,
+      size,
+      avatar: avatarRef.current,
+      mood,
+      timeMs: performance.now(),
+    });
 
     const fitTextSize = (text: string, maxWidth: number, maxFontSize: number, minFontSize: number) => {
       let fontSize = maxFontSize;
@@ -685,6 +701,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       shakeRef.current = 0;
       previousTimeRef.current = 0;
       isDeadRef.current = false;
+      playerMoodRef.current = { mood: 'idle', until: 0 };
       onScoreUpdateRef.current(0);
       onLivesUpdateRef.current(playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives);
       onStatsUpdateRef.current({

@@ -1,8 +1,25 @@
 let audioCtx: AudioContext | null = null;
 let bgmMasterGain: GainNode | null = null;
 let bgmOscillators: OscillatorNode[] = [];
-let bgmLfo: OscillatorNode | null = null;
-let bgmLfoGain: GainNode | null = null;
+let bgmTimers: number[] = [];
+let bgmMode: 'menu' | 'game' | null = null;
+
+type BgmMode = 'menu' | 'game';
+
+const BGM_CONFIG = {
+  menu: {
+    volume: 0.035,
+    wave: 'sine' as OscillatorType,
+    notes: [261.63, 329.63, 392.0, 523.25],
+    stepMs: 720,
+  },
+  game: {
+    volume: 0.045,
+    wave: 'triangle' as OscillatorType,
+    notes: [392.0, 440.0, 523.25, 659.25],
+    stepMs: 360,
+  },
+} as const;
 
 export const initAudio = () => {
   if (typeof window === 'undefined') return;
@@ -17,50 +34,107 @@ export const initAudio = () => {
   }
 };
 
-export const stopMenuBgm = () => {
-  try {
-    if (!audioCtx || !bgmMasterGain) return;
-    const now = audioCtx.currentTime;
-    bgmMasterGain.gain.cancelScheduledValues(now);
-    bgmMasterGain.gain.setValueAtTime(bgmMasterGain.gain.value, now);
-    bgmMasterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+const clearBgmTimers = () => {
+  bgmTimers.forEach(timer => window.clearTimeout(timer));
+  bgmTimers = [];
+};
 
-    setTimeout(() => {
-      bgmOscillators.forEach(osc => {
-        try {
-          osc.stop();
-          osc.disconnect();
-        } catch (_) {}
-      });
-      bgmOscillators = [];
-
-      if (bgmLfo) {
-        try {
-          bgmLfo.stop();
-          bgmLfo.disconnect();
-        } catch (_) {}
-        bgmLfo = null;
-      }
-
-      if (bgmLfoGain) {
-        bgmLfoGain.disconnect();
-        bgmLfoGain = null;
-      }
-
-      if (bgmMasterGain) {
-        bgmMasterGain.disconnect();
-        bgmMasterGain = null;
-      }
-    }, 450);
-  } catch (e) {
-    console.error("Stop BGM failed", e);
+const stopBgmOscillators = (oscillators = bgmOscillators) => {
+  oscillators.forEach(osc => {
+    try {
+      osc.stop();
+      osc.disconnect();
+    } catch (_) {}
+  });
+  if (oscillators === bgmOscillators) {
+    bgmOscillators = [];
   }
 };
 
-export const startMenuBgm = () => {
-  // Menu BGM is intentionally disabled. The previous oscillator stack was more distracting than helpful.
-  stopMenuBgm();
+export const stopBgm = () => {
+  try {
+    clearBgmTimers();
+    bgmMode = null;
+    const oscillatorsToStop = bgmOscillators;
+    bgmOscillators = [];
+
+    if (!audioCtx || !bgmMasterGain) {
+      stopBgmOscillators(oscillatorsToStop);
+      return;
+    }
+
+    const now = audioCtx.currentTime;
+    bgmMasterGain.gain.cancelScheduledValues(now);
+    bgmMasterGain.gain.setValueAtTime(Math.max(bgmMasterGain.gain.value, 0.0001), now);
+    bgmMasterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+    const gainToDisconnect = bgmMasterGain;
+    window.setTimeout(() => {
+      stopBgmOscillators(oscillatorsToStop);
+      try {
+        gainToDisconnect.disconnect();
+      } catch (_) {}
+      if (bgmMasterGain === gainToDisconnect) bgmMasterGain = null;
+    }, 280);
+  } catch (e) {
+    console.error('Stop BGM failed', e);
+  }
 };
+
+const playBgmNote = (mode: BgmMode, index: number) => {
+  if (!audioCtx || !bgmMasterGain || bgmMode !== mode) return;
+
+  const config = BGM_CONFIG[mode];
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+
+  osc.type = config.wave;
+  osc.frequency.setValueAtTime(config.notes[index % config.notes.length], now);
+  gainNode.gain.setValueAtTime(0.0001, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.18, now + 0.04);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + config.stepMs / 1000 * 0.82);
+
+  osc.connect(gainNode);
+  gainNode.connect(bgmMasterGain);
+  osc.start(now);
+  osc.stop(now + config.stepMs / 1000 * 0.88);
+  bgmOscillators.push(osc);
+
+  osc.onended = () => {
+    bgmOscillators = bgmOscillators.filter(item => item !== osc);
+    try {
+      gainNode.disconnect();
+    } catch (_) {}
+  };
+
+  const timer = window.setTimeout(() => playBgmNote(mode, index + 1), config.stepMs);
+  bgmTimers.push(timer);
+};
+
+const startBgm = (mode: BgmMode) => {
+  try {
+    initAudio();
+    if (!audioCtx) return;
+    if (bgmMode === mode) return;
+
+    stopBgm();
+    bgmMode = mode;
+
+    bgmMasterGain = audioCtx.createGain();
+    bgmMasterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    bgmMasterGain.gain.exponentialRampToValueAtTime(BGM_CONFIG[mode].volume, audioCtx.currentTime + 0.28);
+    bgmMasterGain.connect(audioCtx.destination);
+
+    playBgmNote(mode, 0);
+  } catch (e) {
+    console.error('Start BGM failed', e);
+  }
+};
+
+export const startMenuBgm = () => startBgm('menu');
+export const startGameBgm = () => startBgm('game');
+export const stopMenuBgm = stopBgm;
 
 export const playSuccessSound = () => {
   try {
