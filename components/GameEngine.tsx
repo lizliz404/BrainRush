@@ -37,7 +37,7 @@ interface GameEngineProps {
 
 const PLAYER_VISUAL_CONFIG = {
   mobileSizeRatio: 0.115,
-  desktopSizeRatio: 0.074,
+  desktopSizeRatio: 0.095,
   minSizePx: 34,
   collisionHalfWidthRatio: 0.62,
   collisionTopRatio: 0.48,
