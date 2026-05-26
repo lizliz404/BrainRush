@@ -14,11 +14,11 @@ enum AudioState { IDLE, MENU, GAME, TRANSITIONING }
 const BGM_CONFIG = {
   menu: {
     // 菜单：空间感更"近"、温暖、沉浸（正弦波、窄声像、短混响）
-    volume: 0.065,
+    volume: 0.09,
     wave: 'sine' as OscillatorType,
     notes: [261.63, 329.63, 392.0, 523.25], // C4, E4, G4, C5
     stepMs: 720,
-    noteGain: 0.18,
+    noteGain: 0.2,
     
     panSpread: 0.35,          // 窄声像展开
     haasDelayMs: [0, 18],     // 主声部 0ms，单影子声部延迟 18ms
@@ -30,11 +30,11 @@ const BGM_CONFIG = {
   },
   game: {
     // 游戏：空间感更"宽"、高能、紧张（三角波、宽声像、长混响）
-    volume: 0.08,
+    volume: 0.115,
     wave: 'triangle' as OscillatorType,
     notes: [392.0, 440.0, 523.25, 659.25], // G4, A4, C5, E5
     stepMs: 360,
-    noteGain: 0.14,
+    noteGain: 0.16,
     
     panSpread: 0.7,           // 宽广的声像展开
     haasDelayMs: [0, 15, 32], // 主声部 0ms，左右双影子声部延迟 15ms/32ms
@@ -318,108 +318,42 @@ class AudioManager {
   // 4. 短促音效
   // ==========================================
   public playSuccessSound() {
-    try {
-      this.init();
-      if (!this.ctx) return;
-
-      const now = this.ctx.currentTime;
-      const dur = 0.28;
-      // 三音阶跃琶音：C5 → E5 → G5，每次跳变而非滑音
-      const notes = [
-        { freq: 523.25, time: 0 },       // C5
-        { freq: 659.25, time: 0.07 },    // E5
-        { freq: 783.99, time: 0.14 },    // G5
-      ];
-
-      notes.forEach(({ freq, time }) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + time);
-        // 轻微失谐让音色更温暖
-        osc.detune.setValueAtTime(3, now + time);
-
-        const t0 = now + time;
-        gain.gain.setValueAtTime(0.0001, t0);
-        gain.gain.linearRampToValueAtTime(0.14, t0 + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur - time);
-
-        osc.connect(gain);
-        gain.connect(this.ctx!.destination);
-        osc.start(t0);
-        osc.stop(t0 + dur - time);
-
-        osc.onended = () => {
-          try { osc.disconnect(); gain.disconnect(); } catch (_) {}
-        };
-      });
-    } catch (e) {
-      console.warn('Success sound failed (silent fallback):', e);
-    }
+    this.playSimpleSound('sine', [523.25, 659.25], 0.2);
   }
 
   public playErrorSound() {
+    this.playSimpleSound('sawtooth', [150, 50], 0.3);
+  }
+
+  private playSimpleSound(type: OscillatorType, freqs: [number, number], duration: number) {
     try {
       this.init();
       if (!this.ctx) return;
 
-      const now = this.ctx.currentTime;
-      const dur = 0.32;
-
-      // 主嗡声：sawtooth 两段式下降
       const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      const gainNode = this.ctx.createGain();
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.setValueAtTime(75, now + 0.08);   // 快速掉到低沉区
-      osc.frequency.exponentialRampToValueAtTime(35, now + dur); // 继续下滑
+      osc.type = type;
+      osc.connect(gainNode);
+      gainNode.connect(this.ctx.destination);
 
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(0.18, now + 0.015); // 快速冲击
-      gain.gain.setValueAtTime(0.14, now + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      const now = this.ctx.currentTime;
+      osc.frequency.setValueAtTime(freqs[0], now);
+      osc.frequency.setValueAtTime(freqs[1], now + duration * 0.5);
+      osc.frequency.exponentialRampToValueAtTime(freqs[1], now + duration);
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.22, now + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
       osc.start(now);
-      osc.stop(now + dur);
-
-      // 底噪层：短促白噪增加质感
-      const bufferSize = Math.floor(this.ctx.sampleRate * 0.1);
-      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * 0.5;
-      }
-
-      const noise = this.ctx.createBufferSource();
-      const noiseGain = this.ctx.createGain();
-      const noiseFilter = this.ctx.createBiquadFilter();
-
-      noise.buffer = noiseBuffer;
-      noiseFilter.type = 'lowpass';
-      noiseFilter.frequency.setValueAtTime(800, now);
-
-      noiseGain.gain.setValueAtTime(0.0001, now);
-      noiseGain.gain.linearRampToValueAtTime(0.06, now + 0.01);
-      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
-
-      noise.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(this.ctx.destination);
-      noise.start(now);
-      noise.stop(now + 0.1);
+      osc.stop(now + duration);
 
       osc.onended = () => {
-        try { osc.disconnect(); gain.disconnect(); } catch (_) {}
-      };
-      noise.onended = () => {
-        try { noise.disconnect(); noiseFilter.disconnect(); noiseGain.disconnect(); } catch (_) {}
+        try { osc.disconnect(); gainNode.disconnect(); } catch (_) {}
       };
     } catch (e) {
-      console.warn('Error sound failed (silent fallback):', e);
+      console.warn('Audio play failed (silent fallback):', e);
     }
   }
 }
