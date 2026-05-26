@@ -184,8 +184,8 @@ const GameEngine: React.FC<GameEngineProps> = ({
       playerSizePx,
       playerHalfPct,
       moveSpeedPct: isPortrait ? 1.15 : 1.0,
-      baseDropSpeedPct: isPortrait ? 0.2 : 0.18,
-      dropAccelerationPct: isPortrait ? 0.014 : 0.012,
+      baseDropSpeedPct: isPortrait ? 0.24 : 0.22,
+      dropAccelerationPct: isPortrait ? 0.023 : 0.02,
       playerYRatio: isPortrait ? 0.82 : 0.86,
       blockCullY: 112 + (playerSizePx / h) * 100 * 0.9
     };
@@ -436,7 +436,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const rawDropSpeed =
       (metrics.baseDropSpeedPct + (scoreRef.current * metrics.dropAccelerationPct)) *
       speedMultiplier;
-    const maxDropSpeed = metrics.isPortrait ? 1.25 : 1.1;
+    const maxDropSpeed = metrics.isPortrait ? 0.95 : 0.86;
     const baseDropSpeed = Math.min(rawDropSpeed, maxDropSpeed) * timeScale;
     
     let hitBlock: BlockEntity | null = null;

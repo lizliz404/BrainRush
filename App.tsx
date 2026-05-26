@@ -861,10 +861,13 @@ export default function App() {
         <div className="relative z-10 mx-auto mt-6 w-full max-w-4xl">
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
             <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-400">
-              {lang === 'zh' ? '手感：▾ / → / Blocks' : 'Feel: ▾ / → / Blocks'}
+              Fine Tuning
             </h3>
             <div className="grid gap-3">
-              <div>
+              <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2 sm:grid-cols-[8.5rem_1fr]">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-cyan-200/80">
+                  {lang === 'zh' ? 'Drop Pace' : 'Drop Pace'}
+                </div>
                 <div className="flex gap-2" role="group" aria-label={lang === 'zh' ? '方块掉落速度' : 'Block drop speed'}>
                   {(['slow', 'normal', 'fast'] as const).map((opt) => {
                     const label = lang === 'zh'
@@ -891,7 +894,10 @@ export default function App() {
                 </div>
               </div>
 
-              <div>
+              <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2 sm:grid-cols-[8.5rem_1fr]">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-emerald-200/80">
+                  {lang === 'zh' ? 'Follow Speed' : 'Follow Speed'}
+                </div>
                 <div className="flex gap-2" role="group" aria-label={lang === 'zh' ? '人物移动速度' : 'Character move speed'}>
                   {(['slow', 'normal', 'fast'] as const).map((opt) => {
                     const label = lang === 'zh'
@@ -918,7 +924,10 @@ export default function App() {
                 </div>
               </div>
 
-              <div>
+              <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2 sm:grid-cols-[8.5rem_1fr]">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-violet-200/80">
+                  {lang === 'zh' ? 'Blocks' : 'Blocks'}
+                </div>
                 <div className="flex gap-2" role="group" aria-label={lang === 'zh' ? '答案方块密度' : 'Answer block density'}>
                   {(['low', 'normal', 'high'] as const).map((opt) => {
                     const range = opt === 'low' ? '2' : opt === 'normal' ? '2–4' : '3–5';
