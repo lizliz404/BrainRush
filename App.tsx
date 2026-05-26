@@ -861,9 +861,9 @@ export default function App() {
         <div className="relative z-10 mx-auto mt-6 w-full max-w-4xl">
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
             <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-400">
-              {lang === 'zh' ? '手感调节' : 'Feel Tuning'}
+              {lang === 'zh' ? '手感：▾ / → / Blocks' : 'Feel: ▾ / → / Blocks'}
             </h3>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-3">
               <div>
                 <div className="flex gap-2" role="group" aria-label={lang === 'zh' ? '方块掉落速度' : 'Block drop speed'}>
                   {(['slow', 'normal', 'fast'] as const).map((opt) => {
@@ -947,11 +947,6 @@ export default function App() {
               </div>
             </div>
 
-            <p className="mt-4 text-xs text-slate-500">
-              {lang === 'zh'
-                ? '▾ 调节下落节奏，→ 调节追随速度，数字区间调节每题答案方块密度。'
-                : '▾ tunes drop pace, → tunes follow speed, and the number range tunes answer block density.'}
-            </p>
           </div>
         </div>
       </div>

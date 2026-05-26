@@ -88,7 +88,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const currentQuestionRef = useRef<Question | null>(null);
   
   const playerRef = useRef<PlayerEntity>({ x: 50, width: 8 });
-  const pointerTargetXRef = useRef<number | null>(null);
+  const pointerControlUntilRef = useRef<number>(0);
   const blocksRef = useRef<BlockEntity[]>([]);
   const effectsRef = useRef<EffectEntity[]>([]);
   const shakeRef = useRef<number>(0);
@@ -184,8 +184,8 @@ const GameEngine: React.FC<GameEngineProps> = ({
       playerSizePx,
       playerHalfPct,
       moveSpeedPct: isPortrait ? 1.15 : 1.0,
-      baseDropSpeedPct: isPortrait ? 0.24 : 0.22,
-      dropAccelerationPct: isPortrait ? 0.023 : 0.02,
+      baseDropSpeedPct: isPortrait ? 0.2 : 0.18,
+      dropAccelerationPct: isPortrait ? 0.014 : 0.012,
       playerYRatio: isPortrait ? 0.82 : 0.86,
       blockCullY: 112 + (playerSizePx / h) * 100 * 0.9
     };
@@ -257,7 +257,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
     blocksRef.current = newBlocks;
   };
 
-  const handleInput = (clientX: number) => {
+  const handlePointerInput = (clientX: number) => {
     if (gameStateRef.current !== GameState.PLAYING || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
@@ -267,7 +267,8 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const h = canvasRef.current.height / dpr;
     const laneCount = Math.max(3, blocksRef.current.length || 3);
     const metrics = getViewportMetrics(w, h, laneCount);
-    pointerTargetXRef.current = clampPlayerX(percentage, metrics.playerHalfPct);
+    playerRef.current.x = clampPlayerX(percentage, metrics.playerHalfPct);
+    pointerControlUntilRef.current = performance.now() + 220;
   };
 
   const recordMistake = (selectedAnswer: string | null, sourceBlock?: BlockEntity) => {
@@ -310,28 +311,33 @@ const GameEngine: React.FC<GameEngineProps> = ({
     if (!canvas) return;
 
     const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault(); 
-      handleInput(e.touches[0].clientX);
+      e.preventDefault();
+      if (e.touches[0]) handlePointerInput(e.touches[0].clientX);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches[0]) handlePointerInput(e.touches[0].clientX);
     };
     
     const onMouseMove = (e: MouseEvent) => {
-      if (e.buttons === 1) { 
-        handleInput(e.clientX);
-      }
-    };
-    
-    const onHoverMove = (e: MouseEvent) => {
-       handleInput(e.clientX);
+      handlePointerInput(e.clientX);
     };
 
+    const onMouseLeave = () => {
+      pointerControlUntilRef.current = 0;
+    };
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
     canvas.addEventListener('touchmove', onTouchMove, { passive: false });
     canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mousemove', onHoverMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
 
     return () => {
+      canvas.removeEventListener('touchstart', onTouchStart);
       canvas.removeEventListener('touchmove', onTouchMove);
       canvas.removeEventListener('mousemove', onMouseMove);
-      canvas.removeEventListener('mousemove', onHoverMove);
+      canvas.removeEventListener('mouseleave', onMouseLeave);
     };
   }, []);
 
@@ -413,16 +419,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const { dropSpeedMultiplier, moveSpeedMultiplier } = getFeelMultipliers();
 
     const moveSpeed = metrics.moveSpeedPct * timeScale * moveSpeedMultiplier;
-    if (isMovingLeft.current) playerRef.current.x = Math.max(metrics.playerHalfPct, playerRef.current.x - moveSpeed);
-    if (isMovingRight.current) playerRef.current.x = Math.min(100 - metrics.playerHalfPct, playerRef.current.x + moveSpeed);
-    if (pointerTargetXRef.current !== null) {
-      const targetX = clampPlayerX(pointerTargetXRef.current, metrics.playerHalfPct);
-      const delta = targetX - playerRef.current.x;
-      if (Math.abs(delta) <= moveSpeed) {
-        playerRef.current.x = targetX;
-      } else {
-        playerRef.current.x += Math.sign(delta) * moveSpeed;
-      }
+    const isPointerControlling = performance.now() < pointerControlUntilRef.current;
+    if (!isPointerControlling) {
+      if (isMovingLeft.current) playerRef.current.x = Math.max(metrics.playerHalfPct, playerRef.current.x - moveSpeed);
+      if (isMovingRight.current) playerRef.current.x = Math.min(100 - metrics.playerHalfPct, playerRef.current.x + moveSpeed);
     }
 
     let speedMultiplier = 1;
@@ -430,14 +430,14 @@ const GameEngine: React.FC<GameEngineProps> = ({
     if (difficultyRef.current === Difficulty.HARD) speedMultiplier = 1.4;
     if (difficultyRef.current === Difficulty.DEVIL) speedMultiplier = 1.9;
     if (playModeRef.current === PlayMode.QUICK_60) {
-      speedMultiplier = Math.max(speedMultiplier, 2.2);
+      speedMultiplier = Math.max(speedMultiplier, 1.65);
     }
     speedMultiplier *= dropSpeedMultiplier;
-
-    const baseDropSpeed =
+    const rawDropSpeed =
       (metrics.baseDropSpeedPct + (scoreRef.current * metrics.dropAccelerationPct)) *
-      speedMultiplier *
-      timeScale;
+      speedMultiplier;
+    const maxDropSpeed = metrics.isPortrait ? 1.25 : 1.1;
+    const baseDropSpeed = Math.min(rawDropSpeed, maxDropSpeed) * timeScale;
     
     let hitBlock: BlockEntity | null = null;
     const nextBlocks: BlockEntity[] = [];
@@ -756,7 +756,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       timeLeftMsRef.current = 60000;
       livesRef.current = playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives;
       playerRef.current = { x: 50, width: 8 };
-      pointerTargetXRef.current = null;
+      pointerControlUntilRef.current = 0;
       blocksRef.current = [];
       effectsRef.current = [];
       currentQuestionRef.current = null;
