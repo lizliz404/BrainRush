@@ -292,7 +292,7 @@ const DEFAULT_WORD_TUNING: WordTuning = {
 const DEFAULT_FEEL_TUNING: GameFeelTuning = {
   dropSpeed: 'normal',
   moveSpeed: 'normal',
-  maxBlocks: 1,
+  maxBlocks: 3,
 };
 
 const FEEL_TUNING_STORAGE_KEY = 'brainRushFeelTuning';
@@ -378,6 +378,15 @@ const scoreValues = (scores: Record<SubjectMode, number>): number[] =>
 
 const loadStoredJson = <T extends object,>(key: string, fallback: T): T =>
   parseJsonOrFallback(localStorage.getItem(key), fallback);
+
+const loadFeelTuning = (): GameFeelTuning => {
+  const stored = loadStoredJson(FEEL_TUNING_STORAGE_KEY, DEFAULT_FEEL_TUNING) as GameFeelTuning;
+  return {
+    dropSpeed: ['slow', 'normal', 'fast'].includes(stored.dropSpeed) ? stored.dropSpeed : DEFAULT_FEEL_TUNING.dropSpeed,
+    moveSpeed: ['slow', 'normal', 'fast'].includes(stored.moveSpeed) ? stored.moveSpeed : DEFAULT_FEEL_TUNING.moveSpeed,
+    maxBlocks: ([2, 3, 4] as const).includes(stored.maxBlocks as 2 | 3 | 4) ? stored.maxBlocks as 2 | 3 | 4 : DEFAULT_FEEL_TUNING.maxBlocks,
+  };
+};
 
 const loadStoredList = <T,>(key: string): T[] => {
   try {
@@ -489,7 +498,7 @@ export default function App() {
 
   const [tuning, setTuning] = useState<GameTuning>(() => loadStoredJson('brainRushTuning', DEFAULT_TUNING));
   const [wordTuning, setWordTuning] = useState<WordTuning>(() => loadStoredJson(WORD_TUNING_STORAGE_KEY, DEFAULT_WORD_TUNING));
-  const [feelTuning, setFeelTuning] = useState<GameFeelTuning>(() => loadStoredJson(FEEL_TUNING_STORAGE_KEY, DEFAULT_FEEL_TUNING));
+  const [feelTuning, setFeelTuning] = useState<GameFeelTuning>(() => loadFeelTuning());
   const [mistakeBook, setMistakeBook] = useState<Record<SubjectMode, MistakeRecord[]>>(() => loadRecordsBySubject<MistakeRecord>(MISTAKE_STORAGE_KEYS));
   const [timedRunHistory, setTimedRunHistory] = useState<Record<SubjectMode, TimedRunRecord[]>>(() => loadRecordsBySubject<TimedRunRecord>(TIMED_RUN_STORAGE_KEYS));
   const [sessionMistakes, setSessionMistakes] = useState<MistakeRecord[]>([]);
@@ -787,7 +796,7 @@ export default function App() {
           title={`${set.label[lang]} · ${t.score} ${set.score}`}
         >
               <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border ${isSelected ? 'border-slate-900/10 bg-white/70' : 'border-white/10 bg-black/20'}`}>
-                <PixelPlayerPreview avatar={{ head: set.head, body: set.body, legs: set.legs }} className="h-14 w-14" />
+                <PixelPlayerPreview avatar={{ head: set.head, body: set.body, legs: set.legs }} size={56} className="h-14 w-14" />
               </div>
           <div className="min-w-0 flex-1">
             <div className={`truncate text-sm font-black ${isSelected ? 'text-slate-950' : 'text-white'}`}>{set.label[lang]}</div>
@@ -830,7 +839,7 @@ export default function App() {
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
             <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-5 text-center">
               <div className="mx-auto mb-4 flex h-36 w-36 items-center justify-center rounded-3xl bg-white/[0.06] text-center shadow-inner">
-                <PixelPlayerPreview avatar={avatar} className="h-36 w-36" />
+                <PixelPlayerPreview avatar={avatar} size={144} animated className="h-36 w-36" />
               </div>
               <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{lang === 'zh' ? '当前套装' : 'Current outfit'}</div>
               <p className="mt-3 text-xs leading-5 text-slate-400">
@@ -897,13 +906,13 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Max Blocks */}
+              {/* Answer Blocks */}
               <div>
                 <label className="mb-2 block text-xs font-bold text-slate-300">
-                  {lang === 'zh' ? '最大方块数' : 'Max Blocks'}
+                  {lang === 'zh' ? '答案方块数' : 'Answer Blocks'}
                 </label>
                 <div className="flex gap-2">
-                  {([1, 2, 3] as const).map((opt) => (
+                  {([2, 3, 4] as const).map((opt) => (
                     <button
                       key={opt}
                       onClick={() => setFeelTuning(prev => ({ ...prev, maxBlocks: opt }))}
@@ -922,8 +931,8 @@ export default function App() {
 
             <p className="mt-4 text-xs text-slate-500">
               {lang === 'zh'
-                ? '调节游戏节奏和响应速度，找到最适合你的手感。'
-                : 'Tune the game pace and response to find what feels right.'}
+                ? '调节游戏节奏、角色追随速度和每题屏幕上的答案方块数量。'
+                : 'Tune the game pace, character follow speed, and answer blocks shown per question.'}
             </p>
           </div>
         </div>

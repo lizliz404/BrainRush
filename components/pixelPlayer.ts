@@ -144,9 +144,8 @@ export const drawPixelPlayer = (
   const isMiss = mood === 'miss';
   const droopY = isMiss ? 2 : 0; // 低头
 
-  // 6. Waiting 待机动画（轻度摇摆 + 期待眨眼）
+  // 6. Waiting 待机动画（轻度呼吸 + 期待眨眼）。保持整体 anchor 固定，避免预览区“漂移”。
   const isWaiting = mood === 'waiting';
-  const waitSway = isWaiting ? Math.sin(t * 2.5) * 1.5 : 0;
   const waitBounce = isWaiting ? Math.abs(Math.sin(t * 3)) * 1 : 0;
   const waitBlink = isWaiting && (t % 3.5 < 0.12);
 
@@ -169,9 +168,6 @@ export const drawPixelPlayer = (
   let headY = 4 + headBreathe + crouchY + droopY + floatY + (isHappy ? jumpBounce : 0) + waitBounce;
   let legY = 25 + floatY + (isHappy ? jumpBounce * 0.2 : 0);
   let armY = 16 + chestBreathe + crouchY + droopY + handsUp + floatY + (isHappy ? jumpBounce : 0) + waitBounce;
-
-  // Waiting 状态整体左右摇摆
-  const swayX = waitSway;
 
   // 绘图微调：如果是受伤状态，整体失去高光，并有红色 overlay
   const dim = isHurt ? 0.6 : 1; 
@@ -197,7 +193,7 @@ export const drawPixelPlayer = (
   // ================= 开始渲染 =================
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  ctx.translate(originX + swayX * unit, originY);
+  ctx.translate(originX, originY);
   
   // 受伤时的震动偏移
   if (shakeX !== 0) {

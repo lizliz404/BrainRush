@@ -100,6 +100,9 @@ export interface ClozeItem {
 
 export interface BlockEntity {
   id: string;
+  waveId: string;
+  questionText: string;
+  correctAnswer: string;
   x: number; // Percentage 0-100
   y: number; // Percentage 0-100
   value: string;
@@ -116,5 +119,5 @@ export interface PlayerEntity {
 export interface GameFeelTuning {
   dropSpeed: 'slow' | 'normal' | 'fast';
   moveSpeed: 'slow' | 'normal' | 'fast';
-  maxBlocks: 1 | 2 | 3;
+  maxBlocks: 2 | 3 | 4;
 }

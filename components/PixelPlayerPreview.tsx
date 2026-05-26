@@ -5,9 +5,11 @@ import { drawPixelPlayer } from './pixelPlayer';
 interface PixelPlayerPreviewProps {
   avatar: AvatarConfig;
   className?: string;
+  size?: number;
+  animated?: boolean;
 }
 
-const PixelPlayerPreview: React.FC<PixelPlayerPreviewProps> = ({ avatar, className }) => {
+const PixelPlayerPreview: React.FC<PixelPlayerPreviewProps> = ({ avatar, className, size = 144, animated = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -15,7 +17,6 @@ const PixelPlayerPreview: React.FC<PixelPlayerPreviewProps> = ({ avatar, classNa
     if (!canvas) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const size = 144;
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
@@ -24,17 +25,26 @@ const PixelPlayerPreview: React.FC<PixelPlayerPreviewProps> = ({ avatar, classNa
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size, size);
-    drawPixelPlayer(ctx, {
-      x: size / 2,
-      y: size * 0.58,
-      size: size * 0.72,
-      avatar,
-      mood: 'waiting',
-      timeMs: performance.now(),
-    });
-  }, [avatar]);
+    let frameId = 0;
+    const draw = (timeMs: number) => {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+      drawPixelPlayer(ctx, {
+        x: size / 2,
+        y: size * 0.58,
+        size: size * 0.72,
+        avatar,
+        mood: 'waiting',
+        timeMs: animated ? timeMs : 0,
+      });
+      if (animated) frameId = requestAnimationFrame(draw);
+    };
+
+    draw(0);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [avatar, animated, size]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 };

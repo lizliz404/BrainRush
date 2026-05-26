@@ -87,6 +87,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const currentQuestionRef = useRef<Question | null>(null);
   
   const playerRef = useRef<PlayerEntity>({ x: 50, width: 8 });
+  const pointerTargetXRef = useRef<number | null>(null);
   const blocksRef = useRef<BlockEntity[]>([]);
   const effectsRef = useRef<EffectEntity[]>([]);
   const shakeRef = useRef<number>(0);
@@ -195,6 +196,19 @@ const GameEngine: React.FC<GameEngineProps> = ({
     return Math.max(minWidth, Math.min(maxWidth, value));
   };
 
+  const clampPlayerX = (x: number, playerHalfPct: number) =>
+    Math.max(playerHalfPct, Math.min(100 - playerHalfPct, x));
+
+  const getFeelMultipliers = () => {
+    const dropSpeedMap = { slow: 0.7, normal: 1.0, fast: 1.4 };
+    const moveSpeedMap = { slow: 0.75, normal: 1.0, fast: 1.5 };
+    const feel = feelTuningRef.current;
+    return {
+      dropSpeedMultiplier: dropSpeedMap[feel.dropSpeed] ?? 1.0,
+      moveSpeedMultiplier: moveSpeedMap[feel.moveSpeed] ?? 1.0,
+    };
+  };
+
   const spawnQuestion = () => {
     const q = subjectModeRef.current === SubjectMode.WORD
       ? generateWordQuestionWithTuning(difficultyRef.current, wordTuningRef.current)
@@ -206,17 +220,28 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const dpr = window.devicePixelRatio || 1;
     const w = canvas ? canvas.width / dpr : window.innerWidth;
     const h = canvas ? canvas.height / dpr : window.innerHeight;
-    const laneCount = q.options.length;
+    const maxBlocks = feelTuningRef.current.maxBlocks;
+    const prioritizedOptions = q.options.includes(q.answer)
+      ? [q.answer, ...q.options.filter(option => option !== q.answer)]
+      : [q.answer, ...q.options];
+    const visibleOptions = prioritizedOptions
+      .slice(0, maxBlocks)
+      .sort(() => Math.random() - 0.5);
+    const laneCount = visibleOptions.length;
     const metrics = getViewportMetrics(w, h, laneCount);
     const startX = metrics.horizontalPaddingPct;
     const laneWidth = metrics.laneWidthPct;
+    const waveId = Math.random().toString(36).slice(2, 9);
 
-    const newBlocks: BlockEntity[] = q.options.map((opt, index) => {
+    const newBlocks: BlockEntity[] = visibleOptions.map((opt, index) => {
       const laneCenter = startX + (index * laneWidth) + (laneWidth / 2);
       const randomOffset = (Math.random() - 0.5) * laneWidth * 0.18;
       
       return {
         id: Math.random().toString(36).substr(2, 9),
+        waveId,
+        questionText: q.text,
+        correctAnswer: q.answer,
         x: laneCenter + randomOffset,
         y: -20 - (Math.random() * 10), 
         value: opt,
@@ -239,18 +264,19 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const h = canvasRef.current.height / dpr;
     const laneCount = Math.max(3, blocksRef.current.length || 3);
     const metrics = getViewportMetrics(w, h, laneCount);
-    playerRef.current.x = Math.max(metrics.playerHalfPct, Math.min(100 - metrics.playerHalfPct, percentage));
+    pointerTargetXRef.current = clampPlayerX(percentage, metrics.playerHalfPct);
   };
 
-  const recordMistake = (selectedAnswer: string | null) => {
-    const currentQuestion = currentQuestionRef.current;
-    if (!currentQuestion) return;
+  const recordMistake = (selectedAnswer: string | null, sourceBlock?: BlockEntity) => {
+    const questionText = sourceBlock?.questionText ?? currentQuestionRef.current?.text;
+    const correctAnswer = sourceBlock?.correctAnswer ?? currentQuestionRef.current?.answer;
+    if (!questionText || !correctAnswer) return;
 
     onQuestionMistakeRef.current({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       subjectMode: subjectModeRef.current,
-      questionText: currentQuestion.text,
-      correctAnswer: currentQuestion.answer,
+      questionText,
+      correctAnswer,
       selectedAnswer,
       timestamp: new Date().toISOString(),
     });
@@ -381,16 +407,20 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const laneCount = Math.max(3, blocksRef.current.length || 3);
     const metrics = getViewportMetrics(w, h, laneCount);
 
-    // Apply user feel tuning multipliers
-    const dropSpeedMap = { slow: 0.7, normal: 1.0, fast: 1.4 };
-    const moveSpeedMap = { slow: 0.75, normal: 1.0, fast: 1.5 };
-    const feel = feelTuningRef.current;
-    const dropSpeedMultiplier = dropSpeedMap[feel.dropSpeed] ?? 1.0;
-    const moveSpeedMultiplier = moveSpeedMap[feel.moveSpeed] ?? 1.0;
+    const { dropSpeedMultiplier, moveSpeedMultiplier } = getFeelMultipliers();
 
     const moveSpeed = metrics.moveSpeedPct * timeScale * moveSpeedMultiplier;
     if (isMovingLeft.current) playerRef.current.x = Math.max(metrics.playerHalfPct, playerRef.current.x - moveSpeed);
     if (isMovingRight.current) playerRef.current.x = Math.min(100 - metrics.playerHalfPct, playerRef.current.x + moveSpeed);
+    if (pointerTargetXRef.current !== null) {
+      const targetX = clampPlayerX(pointerTargetXRef.current, metrics.playerHalfPct);
+      const delta = targetX - playerRef.current.x;
+      if (Math.abs(delta) <= moveSpeed) {
+        playerRef.current.x = targetX;
+      } else {
+        playerRef.current.x += Math.sign(delta) * moveSpeed;
+      }
+    }
 
     let speedMultiplier = 1;
     if (difficultyRef.current === Difficulty.EASY) speedMultiplier = 0.65;
@@ -500,7 +530,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
         spawnQuestion();
       } else {
         attemptsRef.current += 1;
-        recordMistake(hitBlock.value);
+        recordMistake(hitBlock.value, hitBlock);
         playErrorSound();
         setPlayerMood('hurt', 620);
         shakeRef.current = 500; 
@@ -555,14 +585,6 @@ const GameEngine: React.FC<GameEngineProps> = ({
     } 
     
     if (blocksRef.current.length === 0) {
-       // Respect maxBlocks setting: if user allows multiple blocks, don't auto-miss on empty
-       const maxBlocks = feelTuningRef.current.maxBlocks;
-       if (maxBlocks > 1) {
-         // Just spawn next question without penalty, allowing multiple blocks on screen
-         spawnQuestion();
-         return;
-       }
-
        attemptsRef.current += 1;
        recordMistake(null);
        playErrorSound();
@@ -731,6 +753,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       timeLeftMsRef.current = 60000;
       livesRef.current = playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives;
       playerRef.current = { x: 50, width: 8 };
+      pointerTargetXRef.current = null;
       blocksRef.current = [];
       effectsRef.current = [];
       currentQuestionRef.current = null;
