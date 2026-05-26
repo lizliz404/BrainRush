@@ -119,5 +119,5 @@ export interface PlayerEntity {
 export interface GameFeelTuning {
   dropSpeed: 'slow' | 'normal' | 'fast';
   moveSpeed: 'slow' | 'normal' | 'fast';
-  maxBlocks: 2 | 3 | 4;
+  blockLoad: 'low' | 'normal' | 'high';
 }

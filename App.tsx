@@ -292,7 +292,7 @@ const DEFAULT_WORD_TUNING: WordTuning = {
 const DEFAULT_FEEL_TUNING: GameFeelTuning = {
   dropSpeed: 'normal',
   moveSpeed: 'normal',
-  maxBlocks: 3,
+  blockLoad: 'normal',
 };
 
 const FEEL_TUNING_STORAGE_KEY = 'brainRushFeelTuning';
@@ -380,11 +380,13 @@ const loadStoredJson = <T extends object,>(key: string, fallback: T): T =>
   parseJsonOrFallback(localStorage.getItem(key), fallback);
 
 const loadFeelTuning = (): GameFeelTuning => {
-  const stored = loadStoredJson(FEEL_TUNING_STORAGE_KEY, DEFAULT_FEEL_TUNING) as GameFeelTuning;
+  const stored = loadStoredJson(FEEL_TUNING_STORAGE_KEY, DEFAULT_FEEL_TUNING) as Partial<GameFeelTuning> & { maxBlocks?: number };
+  const legacyBlockLoad = stored.maxBlocks === 2 ? 'low' : stored.maxBlocks === 4 ? 'high' : DEFAULT_FEEL_TUNING.blockLoad;
+
   return {
-    dropSpeed: ['slow', 'normal', 'fast'].includes(stored.dropSpeed) ? stored.dropSpeed : DEFAULT_FEEL_TUNING.dropSpeed,
-    moveSpeed: ['slow', 'normal', 'fast'].includes(stored.moveSpeed) ? stored.moveSpeed : DEFAULT_FEEL_TUNING.moveSpeed,
-    maxBlocks: ([2, 3, 4] as const).includes(stored.maxBlocks as 2 | 3 | 4) ? stored.maxBlocks as 2 | 3 | 4 : DEFAULT_FEEL_TUNING.maxBlocks,
+    dropSpeed: ['slow', 'normal', 'fast'].includes(stored.dropSpeed ?? '') ? stored.dropSpeed as GameFeelTuning['dropSpeed'] : DEFAULT_FEEL_TUNING.dropSpeed,
+    moveSpeed: ['slow', 'normal', 'fast'].includes(stored.moveSpeed ?? '') ? stored.moveSpeed as GameFeelTuning['moveSpeed'] : DEFAULT_FEEL_TUNING.moveSpeed,
+    blockLoad: ['low', 'normal', 'high'].includes(stored.blockLoad ?? '') ? stored.blockLoad as GameFeelTuning['blockLoad'] : legacyBlockLoad,
   };
 };
 
@@ -861,78 +863,94 @@ export default function App() {
             <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-400">
               {lang === 'zh' ? '手感调节' : 'Feel Tuning'}
             </h3>
-            <div className="grid gap-5 sm:grid-cols-3">
-              {/* Drop Speed */}
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
-                <label className="mb-2 block text-xs font-bold text-slate-300">
-                  {lang === 'zh' ? '方块掉落' : 'Drop Speed'}
-                </label>
-                <div className="flex gap-2">
-                  {(['slow', 'normal', 'fast'] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => setFeelTuning(prev => ({ ...prev, dropSpeed: opt }))}
-                      className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold transition-all ${
-                        feelTuning.dropSpeed === opt
-                          ? 'border-cyan-300 bg-cyan-400/20 text-white'
-                          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {opt === 'slow' ? (lang === 'zh' ? '慢' : 'Slow') : opt === 'normal' ? (lang === 'zh' ? '正常' : 'Normal') : (lang === 'zh' ? '快' : 'Fast')}
-                    </button>
-                  ))}
+                <div className="flex gap-2" role="group" aria-label={lang === 'zh' ? '方块掉落速度' : 'Block drop speed'}>
+                  {(['slow', 'normal', 'fast'] as const).map((opt) => {
+                    const label = lang === 'zh'
+                      ? (opt === 'slow' ? '方块慢速掉落' : opt === 'normal' ? '方块正常掉落' : '方块快速掉落')
+                      : (opt === 'slow' ? 'Slow block drop' : opt === 'normal' ? 'Normal block drop' : 'Fast block drop');
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        aria-label={label}
+                        title={label}
+                        aria-pressed={feelTuning.dropSpeed === opt}
+                        onClick={() => setFeelTuning(prev => ({ ...prev, dropSpeed: opt }))}
+                        className={`flex-1 rounded-xl border px-2 py-2 text-base font-black transition-all ${
+                          feelTuning.dropSpeed === opt
+                            ? 'border-cyan-300 bg-cyan-400/20 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {opt === 'slow' ? '▾' : opt === 'normal' ? '▾▾' : '▾▾▾'}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Move Speed */}
               <div>
-                <label className="mb-2 block text-xs font-bold text-slate-300">
-                  {lang === 'zh' ? '人物移动' : 'Move Speed'}
-                </label>
-                <div className="flex gap-2">
-                  {(['slow', 'normal', 'fast'] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => setFeelTuning(prev => ({ ...prev, moveSpeed: opt }))}
-                      className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold transition-all ${
-                        feelTuning.moveSpeed === opt
-                          ? 'border-emerald-300 bg-emerald-400/20 text-white'
-                          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {opt === 'slow' ? (lang === 'zh' ? '慢' : 'Slow') : opt === 'normal' ? (lang === 'zh' ? '正常' : 'Normal') : (lang === 'zh' ? '快' : 'Fast')}
-                    </button>
-                  ))}
+                <div className="flex gap-2" role="group" aria-label={lang === 'zh' ? '人物移动速度' : 'Character move speed'}>
+                  {(['slow', 'normal', 'fast'] as const).map((opt) => {
+                    const label = lang === 'zh'
+                      ? (opt === 'slow' ? '人物慢速移动' : opt === 'normal' ? '人物正常移动' : '人物快速移动')
+                      : (opt === 'slow' ? 'Slow character movement' : opt === 'normal' ? 'Normal character movement' : 'Fast character movement');
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        aria-label={label}
+                        title={label}
+                        aria-pressed={feelTuning.moveSpeed === opt}
+                        onClick={() => setFeelTuning(prev => ({ ...prev, moveSpeed: opt }))}
+                        className={`flex-1 rounded-xl border px-2 py-2 text-base font-black transition-all ${
+                          feelTuning.moveSpeed === opt
+                            ? 'border-emerald-300 bg-emerald-400/20 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {opt === 'slow' ? '→' : opt === 'normal' ? '→→' : '→→→'}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Answer Blocks */}
               <div>
-                <label className="mb-2 block text-xs font-bold text-slate-300">
-                  {lang === 'zh' ? '答案方块数' : 'Answer Blocks'}
-                </label>
-                <div className="flex gap-2">
-                  {([2, 3, 4] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => setFeelTuning(prev => ({ ...prev, maxBlocks: opt }))}
-                      className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold transition-all ${
-                        feelTuning.maxBlocks === opt
-                          ? 'border-violet-300 bg-violet-400/20 text-white'
-                          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+                <div className="flex gap-2" role="group" aria-label={lang === 'zh' ? '答案方块密度' : 'Answer block density'}>
+                  {(['low', 'normal', 'high'] as const).map((opt) => {
+                    const range = opt === 'low' ? '2' : opt === 'normal' ? '2–4' : '3–5';
+                    const label = lang === 'zh'
+                      ? `答案方块 ${range} 个`
+                      : `${range} answer blocks`;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        aria-label={label}
+                        title={label}
+                        aria-pressed={feelTuning.blockLoad === opt}
+                        onClick={() => setFeelTuning(prev => ({ ...prev, blockLoad: opt }))}
+                        className={`flex-1 rounded-xl border px-2 py-2 text-sm font-black transition-all ${
+                          feelTuning.blockLoad === opt
+                            ? 'border-violet-300 bg-violet-400/20 text-white'
+                            : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {range}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
             <p className="mt-4 text-xs text-slate-500">
               {lang === 'zh'
-                ? '调节游戏节奏、角色追随速度和每题屏幕上的答案方块数量。'
-                : 'Tune the game pace, character follow speed, and answer blocks shown per question.'}
+                ? '▾ 调节下落节奏，→ 调节追随速度，数字区间调节每题答案方块密度。'
+                : '▾ tunes drop pace, → tunes follow speed, and the number range tunes answer block density.'}
             </p>
           </div>
         </div>

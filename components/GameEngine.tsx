@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, GameFeelTuning, MistakeRecord, PlayMode, Question, SubjectMode, WordTuning } from '../types';
 import { generateQuestion } from '../services/mathService';
 import { generateWordQuestionWithTuning } from '../services/wordService';
+import { pickAnswerBlockCount } from '../services/feelTuningService';
 import { playSuccessSound, playErrorSound } from '../services/audioService';
 import { drawPixelPlayer, PlayerMood } from './pixelPlayer';
 
@@ -209,6 +210,8 @@ const GameEngine: React.FC<GameEngineProps> = ({
     };
   };
 
+  const getAnswerBlockCount = () => pickAnswerBlockCount(feelTuningRef.current.blockLoad);
+
   const spawnQuestion = () => {
     const q = subjectModeRef.current === SubjectMode.WORD
       ? generateWordQuestionWithTuning(difficultyRef.current, wordTuningRef.current)
@@ -220,12 +223,12 @@ const GameEngine: React.FC<GameEngineProps> = ({
     const dpr = window.devicePixelRatio || 1;
     const w = canvas ? canvas.width / dpr : window.innerWidth;
     const h = canvas ? canvas.height / dpr : window.innerHeight;
-    const maxBlocks = feelTuningRef.current.maxBlocks;
     const prioritizedOptions = q.options.includes(q.answer)
       ? [q.answer, ...q.options.filter(option => option !== q.answer)]
       : [q.answer, ...q.options];
+    const blockCount = Math.min(getAnswerBlockCount(), Math.max(prioritizedOptions.length, 2));
     const visibleOptions = prioritizedOptions
-      .slice(0, maxBlocks)
+      .slice(0, blockCount)
       .sort(() => Math.random() - 0.5);
     const laneCount = visibleOptions.length;
     const metrics = getViewportMetrics(w, h, laneCount);
