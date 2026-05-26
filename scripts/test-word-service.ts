@@ -11,7 +11,7 @@ const expectedOptionCount: Record<Difficulty, number> = {
 };
 
 const tuningCases: Array<{ name: string; tuning: WordTuning }> = [
-  { name: 'mixed', tuning: { allowCloze: true, directionMode: WordDirectionMode.MIXED } },
+  { name: 'mixed', tuning: { allowCloze: false, directionMode: WordDirectionMode.MIXED } },
   { name: 'en to zh', tuning: { allowCloze: false, directionMode: WordDirectionMode.EN_TO_ZH } },
   { name: 'zh to en', tuning: { allowCloze: false, directionMode: WordDirectionMode.ZH_TO_EN } },
 ];
