@@ -1,7 +1,6 @@
-import { CLOZE_SET } from '../data/cloze';
 import { VOCAB } from '../data/vocab';
 import { VOCAB_META } from '../data/vocabMeta';
-import { ClozeItem, Difficulty, Question, VocabItem, WordDirectionMode, WordTuning } from '../types';
+import { Difficulty, Question, VocabItem, WordDirectionMode, WordTuning } from '../types';
 import { getRandomItem, shuffleArray } from '../utils/random';
 
 const DIFFICULTY_ORDER = [
@@ -10,6 +9,12 @@ const DIFFICULTY_ORDER = [
   Difficulty.HARD,
   Difficulty.DEVIL,
 ];
+
+const MAX_EN_LENGTH = 22;
+const MAX_ZH_LENGTH = 18;
+const MIN_VOCAB_POOL_SIZE = 60;
+const NOISY_EN_PATTERN = /[`[\]\\()\u0000-\u0008\u000b\f\u000e-\u001f]|\.{2,}|…|—|=/;
+const NOISY_ZH_PATTERN = /[`/[\]\\]|\bp\.\s*\d+\b|\[[^\]]+\]|[a-zA-Z]{3,}|…/i;
 
 const getOptionCount = (difficulty: Difficulty): number => {
   switch (difficulty) {
@@ -30,35 +35,59 @@ const getAllowedDifficulties = (difficulty: Difficulty): Difficulty[] => {
   return DIFFICULTY_ORDER.slice(0, maxIndex + 1);
 };
 
-const pickDifficultyPool = <T extends VocabItem | ClozeItem>(items: T[], difficulty: Difficulty, minimumCount = 1): T[] => {
+const pickDifficultyPool = <T extends VocabItem>(items: T[], difficulty: Difficulty, minimumCount = 1): T[] => {
   const allowed = new Set(getAllowedDifficulties(difficulty));
   const filtered = items.filter(item => allowed.has(item.difficulty));
   return filtered.length >= minimumCount ? filtered : items;
 };
 
-const getClozeChance = (difficulty: Difficulty): number => {
-  switch (difficulty) {
-    case Difficulty.EASY:
-      return 0;
-    case Difficulty.NORMAL:
-      return 0.15;
-    case Difficulty.HARD:
-      return 0.35;
-    case Difficulty.DEVIL:
-      return 0.55;
-    default:
-      return 0.2;
-  }
+const normalizeWord = (value: string): string => value.trim().toLowerCase();
+
+const normalizeSpaces = (value: string): string => value.replace(/\s+/g, ' ').trim();
+
+const stripMeaningNoise = (value: string): string => {
+  const withoutPageRefs = value
+    .replace(/\bp\.\s*\d+\b/gi, '')
+    .replace(/\[[^\]]+\]/g, '')
+    .replace(/\([^\u4e00-\u9fff)]*\)/g, '')
+    .replace(/（[^\u4e00-\u9fff）]*）/g, '')
+    .replace(/（[^）]*）/g, '')
+    .replace(/[.。…]+$/g, '')
+    .replace(/\.\.\./g, '')
+    .replace(/……/g, '')
+    .replace(/^\s*(n|v|a|adj|adv|prep|pron|phr|conj)\.?\s*/i, '');
+
+  return normalizeSpaces(withoutPageRefs)
+    .replace(/^[,，;；、.。\s]+|[,，;；、.。\s]+$/g, '')
+    .trim();
 };
 
-const normalizeWord = (value: string): string => value.trim().toLowerCase();
+const getMeaningHead = (value: string): string => {
+  const cleaned = stripMeaningNoise(value);
+  return cleaned.split(/[，,；;、（(]/)[0]?.trim() || cleaned;
+};
+
+const isPlayableVocab = (item: VocabItem): boolean => {
+  const en = normalizeSpaces(item.en);
+  const zh = getMeaningHead(item.zh);
+
+  return Boolean(
+    en &&
+    zh &&
+    en.length <= MAX_EN_LENGTH &&
+    zh.length <= MAX_ZH_LENGTH &&
+    !NOISY_EN_PATTERN.test(en) &&
+    !NOISY_ZH_PATTERN.test(stripMeaningNoise(item.zh)) &&
+    /[\u4e00-\u9fff]/.test(zh)
+  );
+};
+
+const PLAYABLE_VOCAB = VOCAB.filter(isPlayableVocab);
 
 const getPrimaryPos = (item: VocabItem): string => {
   const meta = VOCAB_META[normalizeWord(item.en)];
   return meta?.pos?.split(/[;,/ ]/)[0]?.replace('.', '').trim().toLowerCase() || '';
 };
-
-const getMeaningHead = (value: string): string => value.split(/[，,；;、（(]/)[0]?.trim() || value.trim();
 
 const getDistractorPool = (answer: VocabItem, pool: VocabItem[], direction: 'en' | 'zh'): string[] => {
   const answerPos = getPrimaryPos(answer);
@@ -67,7 +96,7 @@ const getDistractorPool = (answer: VocabItem, pool: VocabItem[], direction: 'en'
     : [];
   const source = samePosItems.length >= 8 ? samePosItems : pool.filter(item => item.en !== answer.en);
 
-  return source.map(item => (direction === 'en' ? item.en : getMeaningHead(item.zh)));
+  return source.map(item => (direction === 'en' ? normalizeSpaces(item.en) : getMeaningHead(item.zh)));
 };
 
 const pickOptions = (
@@ -78,19 +107,22 @@ const pickOptions = (
 ): string[] => {
   const options = new Set<string>([answer]);
 
-  for (const candidate of shuffleArray(primaryPool)) {
-    if (candidate !== answer) {
-      options.add(candidate);
+  const addCandidate = (candidate: string): void => {
+    const normalized = normalizeSpaces(candidate);
+    if (normalized && normalized !== answer) {
+      options.add(normalized);
     }
+  };
+
+  for (const candidate of shuffleArray(primaryPool)) {
+    addCandidate(candidate);
     if (options.size >= totalOptionsCount) {
       return shuffleArray(Array.from(options));
     }
   }
 
   for (const candidate of shuffleArray(fallbackPool)) {
-    if (candidate !== answer) {
-      options.add(candidate);
-    }
+    addCandidate(candidate);
     if (options.size >= totalOptionsCount) {
       break;
     }
@@ -101,26 +133,14 @@ const pickOptions = (
 
 export const generateWordQuestion = (difficulty: Difficulty): Question => {
   return generateWordQuestionWithTuning(difficulty, {
-    allowCloze: true,
+    allowCloze: false,
     directionMode: WordDirectionMode.MIXED,
   });
 };
 
 export const generateWordQuestionWithTuning = (difficulty: Difficulty, tuning: WordTuning): Question => {
   const optionCount = getOptionCount(difficulty);
-  const clozePool = pickDifficultyPool(CLOZE_SET, difficulty);
-  const vocabPool = pickDifficultyPool(VOCAB, difficulty, optionCount);
-  const useCloze = tuning.allowCloze && clozePool.length > 0 && Math.random() < getClozeChance(difficulty);
-
-  if (useCloze) {
-    const cloze = getRandomItem(clozePool);
-    return {
-      text: `${cloze.sentence} (${cloze.zhHint})`,
-      answer: cloze.answer,
-      options: pickOptions(cloze.answer, cloze.distractors, VOCAB.map(item => item.en), optionCount),
-    };
-  }
-
+  const vocabPool = pickDifficultyPool(PLAYABLE_VOCAB, difficulty, Math.max(optionCount, MIN_VOCAB_POOL_SIZE));
   const vocab = getRandomItem(vocabPool);
   const isEnToZh =
     tuning.directionMode === WordDirectionMode.EN_TO_ZH
@@ -128,21 +148,22 @@ export const generateWordQuestionWithTuning = (difficulty: Difficulty, tuning: W
       : tuning.directionMode === WordDirectionMode.ZH_TO_EN
         ? false
         : Math.random() < 0.5;
-  const allZh = VOCAB.map(item => getMeaningHead(item.zh));
-  const allEn = VOCAB.map(item => item.en);
+  const allZh = PLAYABLE_VOCAB.map(item => getMeaningHead(item.zh));
+  const allEn = PLAYABLE_VOCAB.map(item => normalizeSpaces(item.en));
 
   if (isEnToZh) {
     const answer = getMeaningHead(vocab.zh);
     return {
-      text: vocab.en,
+      text: normalizeSpaces(vocab.en),
       answer,
       options: pickOptions(answer, getDistractorPool(vocab, vocabPool, 'zh'), allZh, optionCount),
     };
   }
 
+  const answer = normalizeSpaces(vocab.en);
   return {
-    text: vocab.zh,
-    answer: vocab.en,
-    options: pickOptions(vocab.en, getDistractorPool(vocab, vocabPool, 'en'), allEn, optionCount),
+    text: getMeaningHead(vocab.zh),
+    answer,
+    options: pickOptions(answer, getDistractorPool(vocab, vocabPool, 'en'), allEn, optionCount),
   };
 };

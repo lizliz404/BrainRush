@@ -60,7 +60,7 @@ const TRANSLATIONS = {
     rangeAbove50: '50 and above',
     allowRemainder: 'Allow Remainder',
     allowNegative: 'Allow Negative',
-    allowCloze: 'Sentence Cloze',
+    allowCloze: 'Word Meaning',
     wordDirection: 'Direction',
     directionMixed: 'Mixed',
     directionEnToZh: 'EN -> ZH',
@@ -164,7 +164,7 @@ const TRANSLATIONS = {
     rangeAbove50: '五十以上',
     allowRemainder: '允许余数',
     allowNegative: '允许负数',
-    allowCloze: '句子填空',
+    allowCloze: '单词含义',
     wordDirection: '方向',
     directionMixed: '双向混合',
     directionEnToZh: '英译中',
@@ -285,7 +285,7 @@ const DEFAULT_TUNING: GameTuning = {
 };
 
 const DEFAULT_WORD_TUNING: WordTuning = {
-  allowCloze: true,
+  allowCloze: false,
   directionMode: WordDirectionMode.MIXED,
 };
 
@@ -464,8 +464,8 @@ export default function App() {
       description.setAttribute(
         'content',
         lang === 'zh'
-          ? 'Brain Rush 是免费的儿童口算训练与英语单词小游戏，支持 60 秒速算、单词选择、句子填空、错题本、本地成绩和移动端拖拽练习。'
-          : 'Brain Rush is a free 60-second mental math and English word game with quick arithmetic practice, vocabulary choices, sentence cloze, a wrong answer book, local scores, and mobile drag controls.'
+          ? 'Brain Rush 是免费的儿童口算训练与英语单词小游戏，支持 60 秒速算、单词中英互译、错题本、本地成绩和移动端拖拽练习。'
+          : 'Brain Rush is a free 60-second mental math and English word game with quick arithmetic practice, English-Chinese vocabulary choices, a wrong answer book, local scores, and mobile drag controls.'
       );
     }
   }, [lang]);
@@ -1485,12 +1485,7 @@ export default function App() {
                     >
                       {t.wordDirection}: {getWordDirectionLabel(wordTuning.directionMode)}
                     </button>
-                    <button
-                      onClick={() => setWordTuning(prev => ({ ...prev, allowCloze: !prev.allowCloze }))}
-                      className="rounded-full bg-white/10 px-3 py-1.5 transition-all duration-200 hover:bg-white/20 active:scale-95"
-                    >
-                      {t.allowCloze}: {getToggleLabel(wordTuning.allowCloze)}
-                    </button>
+
                   </>
                 )}
               </div>
@@ -1702,32 +1697,12 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="mb-8">
-                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{t.allowCloze}</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[true, false].map(option => (
-                      <button
-                        key={String(option)}
-                        onClick={() => setWordTuning(prev => ({ ...prev, allowCloze: option }))}
-                        className={`rounded-2xl border px-4 py-3 text-center transition-all duration-300 ease-out ${
-                          wordTuning.allowCloze === option
-                            ? 'border-emerald-300 bg-emerald-400/20 text-white shadow-[0_0_0_1px_rgba(52,211,153,0.25)]'
-                            : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
-                        }`}
-                      >
-                        <div className="font-bold">{getToggleLabel(option)}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
                   <p>{t.wordDirection}: <span className="font-bold text-white">{getWordDirectionLabel(wordTuning.directionMode)}</span></p>
-                  <p className="mt-2">{t.allowCloze}: <span className="font-bold text-white">{getToggleLabel(wordTuning.allowCloze)}</span></p>
                   <p className="mt-3 text-slate-400">
                     {lang === 'zh'
-                      ? '难度会继续决定词汇池层级、选项数，以及句子填空出现频率。'
-                      : 'Difficulty still controls the word pool, option count, and cloze frequency.'}
+                      ? '难度会继续决定词汇池层级和选项数。当前只练中英互译与单词含义。'
+                      : 'Difficulty still controls the word pool and option count. Word mode now drills only English-Chinese meaning.'}
                   </p>
                 </div>
               </div>
