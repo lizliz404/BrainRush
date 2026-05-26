@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { animate } from 'animejs';
-import { AvatarConfig, Difficulty, GameState, GameTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
+import { AvatarConfig, Difficulty, GameState, GameTuning, GameFeelTuning, MistakeRecord, NumberRangeMode, OperationFocus, PlayMode, SubjectMode, TimedRunRecord, WordDirectionMode, WordTuning } from './types';
 import GameEngine from './components/GameEngine';
 import BrainRushLogoIcon from './components/BrainRushLogoIcon';
 import PepWordsLogoIcon from './components/PepWordsLogoIcon';
@@ -289,6 +289,14 @@ const DEFAULT_WORD_TUNING: WordTuning = {
   directionMode: WordDirectionMode.MIXED,
 };
 
+const DEFAULT_FEEL_TUNING: GameFeelTuning = {
+  dropSpeed: 'normal',
+  moveSpeed: 'normal',
+  maxBlocks: 1,
+};
+
+const FEEL_TUNING_STORAGE_KEY = 'brainRushFeelTuning';
+
 const HIGH_SCORE_STORAGE_KEYS: Record<SubjectMode, string> = {
   [SubjectMode.MATH]: 'brainRushHighScore_MATH',
   [SubjectMode.WORD]: 'brainRushHighScore_WORD',
@@ -312,6 +320,7 @@ const LOCAL_DATA_KEYS = [
   ...Object.values(TIMED_RUN_STORAGE_KEYS),
   LEGACY_HIGH_SCORE_KEY,
   WORD_TUNING_STORAGE_KEY,
+  FEEL_TUNING_STORAGE_KEY,
   'brainRushAvatar',
   'brainRushTuning',
 ];
@@ -442,6 +451,7 @@ export default function App() {
   const [storyClosing, setStoryClosing] = useState(false);
   const [mistakesOpen, setMistakesOpen] = useState(false);
   const [mistakesClosing, setMistakesClosing] = useState(false);
+  const [mistakesSubjectTab, setMistakesSubjectTab] = useState<SubjectMode>(SubjectMode.MATH);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
   const [feedbackView, setFeedbackView] = useState<'form' | 'wechat'>('form');
@@ -479,6 +489,7 @@ export default function App() {
 
   const [tuning, setTuning] = useState<GameTuning>(() => loadStoredJson('brainRushTuning', DEFAULT_TUNING));
   const [wordTuning, setWordTuning] = useState<WordTuning>(() => loadStoredJson(WORD_TUNING_STORAGE_KEY, DEFAULT_WORD_TUNING));
+  const [feelTuning, setFeelTuning] = useState<GameFeelTuning>(() => loadStoredJson(FEEL_TUNING_STORAGE_KEY, DEFAULT_FEEL_TUNING));
   const [mistakeBook, setMistakeBook] = useState<Record<SubjectMode, MistakeRecord[]>>(() => loadRecordsBySubject<MistakeRecord>(MISTAKE_STORAGE_KEYS));
   const [timedRunHistory, setTimedRunHistory] = useState<Record<SubjectMode, TimedRunRecord[]>>(() => loadRecordsBySubject<TimedRunRecord>(TIMED_RUN_STORAGE_KEYS));
   const [sessionMistakes, setSessionMistakes] = useState<MistakeRecord[]>([]);
@@ -487,7 +498,6 @@ export default function App() {
 
   const currentHighScore = highScores[subjectMode];
   const overallHighScore = Math.max(...scoreValues(highScores), 0);
-  const currentMistakes = mistakeBook[subjectMode];
   const currentTimedRuns = timedRunHistory[subjectMode];
 
   // Save when changed
@@ -507,6 +517,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(WORD_TUNING_STORAGE_KEY, JSON.stringify(wordTuning));
   }, [wordTuning]);
+
+  useEffect(() => {
+    localStorage.setItem(FEEL_TUNING_STORAGE_KEY, JSON.stringify(feelTuning));
+  }, [feelTuning]);
 
   useEffect(() => {
     localStorage.setItem(MISTAKE_STORAGE_KEYS[SubjectMode.MATH], JSON.stringify(mistakeBook[SubjectMode.MATH]));
@@ -772,9 +786,9 @@ export default function App() {
           aria-label={`${set.label[lang]} · ${t.score} ${set.score}`}
           title={`${set.label[lang]} · ${t.score} ${set.score}`}
         >
-          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border ${isSelected ? 'border-slate-900/10 bg-white/70' : 'border-white/10 bg-black/20'}`}>
-            <PixelPlayerPreview avatar={{ head: set.head, body: set.body, legs: set.legs }} className="h-12 w-12" />
-          </div>
+              <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border ${isSelected ? 'border-slate-900/10 bg-white/70' : 'border-white/10 bg-black/20'}`}>
+                <PixelPlayerPreview avatar={{ head: set.head, body: set.body, legs: set.legs }} className="h-14 w-14" />
+              </div>
           <div className="min-w-0 flex-1">
             <div className={`truncate text-sm font-black ${isSelected ? 'text-slate-950' : 'text-white'}`}>{set.label[lang]}</div>
             <div className={`mt-1 text-[11px] font-bold ${isSelected ? 'text-slate-700' : 'text-slate-400'}`}>
@@ -815,8 +829,8 @@ export default function App() {
         <div className="relative z-10 mx-auto grid w-full max-w-4xl gap-5 md:grid-cols-[0.8fr_1.2fr]">
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
             <div className="rounded-[1.25rem] border border-white/10 bg-black/15 p-5 text-center">
-              <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-3xl bg-white/[0.06] text-center shadow-inner md:h-24 md:w-24">
-                <PixelPlayerPreview avatar={avatar} className="h-28 w-28 md:h-24 md:w-24" />
+              <div className="mx-auto mb-4 flex h-36 w-36 items-center justify-center rounded-3xl bg-white/[0.06] text-center shadow-inner">
+                <PixelPlayerPreview avatar={avatar} className="h-36 w-36" />
               </div>
               <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{lang === 'zh' ? '当前套装' : 'Current outfit'}</div>
               <p className="mt-3 text-xs leading-5 text-slate-400">
@@ -829,6 +843,88 @@ export default function App() {
 
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {UNLOCKABLE_SETS.map(renderOutfitButton)}
+          </div>
+        </div>
+
+        {/* Feel Tuning Section */}
+        <div className="relative z-10 mx-auto mt-6 w-full max-w-4xl">
+          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
+            <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-400">
+              {lang === 'zh' ? '手感调节' : 'Feel Tuning'}
+            </h3>
+            <div className="grid gap-5 sm:grid-cols-3">
+              {/* Drop Speed */}
+              <div>
+                <label className="mb-2 block text-xs font-bold text-slate-300">
+                  {lang === 'zh' ? '方块掉落' : 'Drop Speed'}
+                </label>
+                <div className="flex gap-2">
+                  {(['slow', 'normal', 'fast'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setFeelTuning(prev => ({ ...prev, dropSpeed: opt }))}
+                      className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold transition-all ${
+                        feelTuning.dropSpeed === opt
+                          ? 'border-cyan-300 bg-cyan-400/20 text-white'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      {opt === 'slow' ? (lang === 'zh' ? '慢' : 'Slow') : opt === 'normal' ? (lang === 'zh' ? '正常' : 'Normal') : (lang === 'zh' ? '快' : 'Fast')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Move Speed */}
+              <div>
+                <label className="mb-2 block text-xs font-bold text-slate-300">
+                  {lang === 'zh' ? '人物移动' : 'Move Speed'}
+                </label>
+                <div className="flex gap-2">
+                  {(['slow', 'normal', 'fast'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setFeelTuning(prev => ({ ...prev, moveSpeed: opt }))}
+                      className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold transition-all ${
+                        feelTuning.moveSpeed === opt
+                          ? 'border-emerald-300 bg-emerald-400/20 text-white'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      {opt === 'slow' ? (lang === 'zh' ? '慢' : 'Slow') : opt === 'normal' ? (lang === 'zh' ? '正常' : 'Normal') : (lang === 'zh' ? '快' : 'Fast')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Max Blocks */}
+              <div>
+                <label className="mb-2 block text-xs font-bold text-slate-300">
+                  {lang === 'zh' ? '最大方块数' : 'Max Blocks'}
+                </label>
+                <div className="flex gap-2">
+                  {([1, 2, 3] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setFeelTuning(prev => ({ ...prev, maxBlocks: opt }))}
+                      className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold transition-all ${
+                        feelTuning.maxBlocks === opt
+                          ? 'border-violet-300 bg-violet-400/20 text-white'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-slate-500">
+              {lang === 'zh'
+                ? '调节游戏节奏和响应速度，找到最适合你的手感。'
+                : 'Tune the game pace and response to find what feels right.'}
+            </p>
           </div>
         </div>
       </div>
@@ -847,6 +943,15 @@ export default function App() {
           <div className="mt-3 space-y-3">
             {mistakes.slice(0, 5).map(mistake => (
               <div key={mistake.id} className={`rounded-xl p-3 text-sm ${isLight ? 'border border-slate-200 bg-white text-slate-600' : 'bg-white/5 text-slate-300'}`}>
+                <div className="mb-1 flex items-center gap-2">
+                  <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                    mistake.subjectMode === SubjectMode.WORD
+                      ? (isLight ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-200')
+                      : (isLight ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-200')
+                  }`}>
+                    {mistake.subjectMode === SubjectMode.WORD ? (lang === 'zh' ? '单词' : 'Word') : (lang === 'zh' ? '数学' : 'Math')}
+                  </span>
+                </div>
                 <div className={`break-words font-bold ${isLight ? 'text-slate-950' : 'text-white'}`}>{mistake.questionText}</div>
                 <div className="mt-2">
                   {t.yourAnswer}: <span className={`break-all font-semibold ${isLight ? 'text-amber-700' : 'text-amber-200'}`}>{mistake.selectedAnswer ?? t.missedAnswer}</span>
@@ -942,6 +1047,7 @@ export default function App() {
   };
 
   const openMistakes = () => {
+    setMistakesSubjectTab(subjectMode);
     setMistakesClosing(false);
     setMistakesOpen(true);
   };
@@ -1022,6 +1128,7 @@ export default function App() {
     setAvatar(DEFAULT_AVATAR);
     setTuning(DEFAULT_TUNING);
     setWordTuning(DEFAULT_WORD_TUNING);
+    setFeelTuning(DEFAULT_FEEL_TUNING);
     setMistakeBook({ [SubjectMode.MATH]: [], [SubjectMode.WORD]: [] });
     setTimedRunHistory({ [SubjectMode.MATH]: [], [SubjectMode.WORD]: [] });
     resetSessionMistakes();
@@ -1261,15 +1368,35 @@ export default function App() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-200/75">{subjectMode === SubjectMode.WORD ? t.wordMode : t.mathMode}</p>
-                <h2 id="brain-rush-mistakes-title" className="mt-2 text-2xl font-black text-white md:text-3xl">{t.recentMistakes}</h2>
+                <h2 id="brain-rush-mistakes-title" className="text-2xl font-black text-white md:text-3xl">{t.recentMistakes}</h2>
               </div>
               <button onClick={closeMistakes} aria-label={t.feedbackClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white">
                 <XMarkIcon className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
+
+            {/* Subject tabs */}
+            <div className="mt-4 inline-flex rounded-full border border-white/10 bg-black/25 p-1">
+              {([
+                { key: SubjectMode.MATH, label: lang === 'zh' ? '数学' : 'Math' },
+                { key: SubjectMode.WORD, label: lang === 'zh' ? '单词' : 'Word' },
+              ] as const).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setMistakesSubjectTab(key)}
+                  className={`rounded-full px-3.5 py-2 text-xs font-black transition ${
+                    mistakesSubjectTab === key
+                      ? 'bg-white text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <div className="mt-5">
-              {renderMistakeList(currentMistakes)}
+              {renderMistakeList(mistakeBook[mistakesSubjectTab])}
             </div>
           </div>
         </div>
@@ -1285,6 +1412,7 @@ export default function App() {
           avatar={avatar}
           tuning={tuning}
           wordTuning={wordTuning}
+          feelTuning={feelTuning}
           initialLives={DIFFICULTY_CONFIG[difficulty].lives}
           onScoreUpdate={setScore}
           onLivesUpdate={setLives}

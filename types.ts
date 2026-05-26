@@ -113,7 +113,8 @@ export interface PlayerEntity {
   width: number; // Percentage
 }
 
-export interface GameConfig {
-  speedBase: number; // Speed multiplier
-  spawnRate: number; // ms
+export interface GameFeelTuning {
+  dropSpeed: 'slow' | 'normal' | 'fast';
+  moveSpeed: 'slow' | 'normal' | 'fast';
+  maxBlocks: 1 | 2 | 3;
 }

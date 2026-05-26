@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, MistakeRecord, PlayMode, Question, SubjectMode, WordTuning } from '../types';
+import { GameState, BlockEntity, PlayerEntity, Difficulty, AvatarConfig, GameTuning, GameFeelTuning, MistakeRecord, PlayMode, Question, SubjectMode, WordTuning } from '../types';
 import { generateQuestion } from '../services/mathService';
 import { generateWordQuestionWithTuning } from '../services/wordService';
 import { playSuccessSound, playErrorSound } from '../services/audioService';
@@ -26,6 +26,7 @@ interface GameEngineProps {
   avatar: AvatarConfig;
   tuning: GameTuning;
   wordTuning: WordTuning;
+  feelTuning: GameFeelTuning;
   initialLives: number;
   onScoreUpdate: (score: number) => void;
   onLivesUpdate: (lives: number) => void;
@@ -52,6 +53,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   avatar,
   tuning,
   wordTuning,
+  feelTuning,
   initialLives,
   onScoreUpdate, 
   onLivesUpdate,
@@ -70,6 +72,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const tuningRef = useRef(tuning);
   const subjectModeRef = useRef(subjectMode);
   const wordTuningRef = useRef(wordTuning);
+  const feelTuningRef = useRef(feelTuning);
   const onScoreUpdateRef = useRef(onScoreUpdate);
   const onLivesUpdateRef = useRef(onLivesUpdate);
   const onStatsUpdateRef = useRef(onStatsUpdate);
@@ -88,7 +91,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
   const effectsRef = useRef<EffectEntity[]>([]);
   const shakeRef = useRef<number>(0);
   const avatarRef = useRef<AvatarConfig>(avatar);
-  const playerMoodRef = useRef<{ mood: PlayerMood; until: number }>({ mood: 'idle', until: 0 });
+  const playerMoodRef = useRef<{ mood: PlayerMood; until: number }>({ mood: 'waiting', until: 0 });
   const isDeadRef = useRef<boolean>(false);
   
   const isMovingLeft = useRef(false);
@@ -121,6 +124,10 @@ const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     wordTuningRef.current = wordTuning;
   }, [wordTuning]);
+
+  useEffect(() => {
+    feelTuningRef.current = feelTuning;
+  }, [feelTuning]);
 
   useEffect(() => {
     onScoreUpdateRef.current = onScoreUpdate;
@@ -341,9 +348,9 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
   const getPlayerMood = () => {
     const current = playerMoodRef.current;
-    if (current.mood !== 'idle' && performance.now() > current.until) {
-      playerMoodRef.current = { mood: 'idle', until: 0 };
-      return 'idle';
+    if (current.mood !== 'idle' && current.mood !== 'waiting' && performance.now() > current.until) {
+      playerMoodRef.current = { mood: 'waiting', until: 0 };
+      return 'waiting';
     }
     return current.mood;
   };
@@ -373,7 +380,15 @@ const GameEngine: React.FC<GameEngineProps> = ({
 
     const laneCount = Math.max(3, blocksRef.current.length || 3);
     const metrics = getViewportMetrics(w, h, laneCount);
-    const moveSpeed = metrics.moveSpeedPct * timeScale;
+
+    // Apply user feel tuning multipliers
+    const dropSpeedMap = { slow: 0.7, normal: 1.0, fast: 1.4 };
+    const moveSpeedMap = { slow: 0.75, normal: 1.0, fast: 1.5 };
+    const feel = feelTuningRef.current;
+    const dropSpeedMultiplier = dropSpeedMap[feel.dropSpeed] ?? 1.0;
+    const moveSpeedMultiplier = moveSpeedMap[feel.moveSpeed] ?? 1.0;
+
+    const moveSpeed = metrics.moveSpeedPct * timeScale * moveSpeedMultiplier;
     if (isMovingLeft.current) playerRef.current.x = Math.max(metrics.playerHalfPct, playerRef.current.x - moveSpeed);
     if (isMovingRight.current) playerRef.current.x = Math.min(100 - metrics.playerHalfPct, playerRef.current.x + moveSpeed);
 
@@ -384,6 +399,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
     if (playModeRef.current === PlayMode.QUICK_60) {
       speedMultiplier = Math.max(speedMultiplier, 2.2);
     }
+    speedMultiplier *= dropSpeedMultiplier;
 
     const baseDropSpeed =
       (metrics.baseDropSpeedPct + (scoreRef.current * metrics.dropAccelerationPct)) *
@@ -539,6 +555,14 @@ const GameEngine: React.FC<GameEngineProps> = ({
     } 
     
     if (blocksRef.current.length === 0) {
+       // Respect maxBlocks setting: if user allows multiple blocks, don't auto-miss on empty
+       const maxBlocks = feelTuningRef.current.maxBlocks;
+       if (maxBlocks > 1) {
+         // Just spawn next question without penalty, allowing multiple blocks on screen
+         spawnQuestion();
+         return;
+       }
+
        attemptsRef.current += 1;
        recordMistake(null);
        playErrorSound();
@@ -713,7 +737,7 @@ const GameEngine: React.FC<GameEngineProps> = ({
       shakeRef.current = 0;
       previousTimeRef.current = 0;
       isDeadRef.current = false;
-      playerMoodRef.current = { mood: 'idle', until: 0 };
+      playerMoodRef.current = { mood: 'waiting', until: 0 };
       onScoreUpdateRef.current(0);
       onLivesUpdateRef.current(playMode === PlayMode.QUICK_60 ? Number.MAX_SAFE_INTEGER : initialLives);
       onStatsUpdateRef.current({

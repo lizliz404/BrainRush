@@ -1,6 +1,6 @@
 import { AvatarConfig } from '../types';
 
-export type PlayerMood = 'idle' | 'happy' | 'hurt' | 'miss';
+export type PlayerMood = 'idle' | 'happy' | 'hurt' | 'miss' | 'waiting';
 
 // 内部角色类型枚举，方便做深度定制
 type CharClass = 'runner' | 'ninja' | 'skater' | 'robot' | 'astronaut' | 'scientist' | 'hero' | 'boss';
@@ -143,7 +143,13 @@ export const drawPixelPlayer = (
   // 5. Miss 失落动画
   const isMiss = mood === 'miss';
   const droopY = isMiss ? 2 : 0; // 低头
-  
+
+  // 6. Waiting 待机动画（轻度摇摆 + 期待眨眼）
+  const isWaiting = mood === 'waiting';
+  const waitSway = isWaiting ? Math.sin(t * 2.5) * 1.5 : 0;
+  const waitBounce = isWaiting ? Math.abs(Math.sin(t * 3)) * 1 : 0;
+  const waitBlink = isWaiting && (t % 3.5 < 0.12);
+
   // Boss 专属悬浮动画
   const isBoss = char === 'boss';
   const floatY = isBoss && !isHurt && !isMiss ? Math.sin(t * 2) * 2 : 0;
@@ -159,10 +165,13 @@ export const drawPixelPlayer = (
 
   // 基础骨骼 Y 坐标
   const groundY = 30;
-  let bodyY = 16 + crouchY + floatY + (isHappy ? jumpBounce : 0);
-  let headY = 4 + headBreathe + crouchY + droopY + floatY + (isHappy ? jumpBounce : 0);
-  let legY = 25 + floatY + (isHappy ? jumpBounce * 0.2 : 0); // 腿部起跳时微微收缩
-  let armY = 16 + chestBreathe + crouchY + droopY + handsUp + floatY + (isHappy ? jumpBounce : 0);
+  let bodyY = 16 + crouchY + floatY + (isHappy ? jumpBounce : 0) + waitBounce;
+  let headY = 4 + headBreathe + crouchY + droopY + floatY + (isHappy ? jumpBounce : 0) + waitBounce;
+  let legY = 25 + floatY + (isHappy ? jumpBounce * 0.2 : 0);
+  let armY = 16 + chestBreathe + crouchY + droopY + handsUp + floatY + (isHappy ? jumpBounce : 0) + waitBounce;
+
+  // Waiting 状态整体左右摇摆
+  const swayX = waitSway;
 
   // 绘图微调：如果是受伤状态，整体失去高光，并有红色 overlay
   const dim = isHurt ? 0.6 : 1; 
@@ -188,7 +197,7 @@ export const drawPixelPlayer = (
   // ================= 开始渲染 =================
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  ctx.translate(originX, originY);
+  ctx.translate(originX + swayX * unit, originY);
   
   // 受伤时的震动偏移
   if (shakeX !== 0) {
@@ -427,6 +436,14 @@ export const drawPixelPlayer = (
           box(13, eyeY + 3, 6, 1, '#0f172a');
           box(14, eyeY + 4, 4, 2, '#0f172a');
           box(15, eyeY + 4, 2, 1, '#ef4444');
+        } else if (waitBlink) {
+          // Waiting 状态闭眼（期待状）
+          box(eyeX1, eyeY + 1, 3, 1, eyeColor);
+          box(eyeX2, eyeY + 1, 3, 1, eyeColor);
+          // 微微上扬的嘴角
+          box(14, eyeY + 4, 4, 1, '#0f172a');
+          box(13, eyeY + 3, 1, 1, '#0f172a');
+          box(18, eyeY + 3, 1, 1, '#0f172a');
         } else {
           // 正常睁眼
           if (char !== 'skater') {

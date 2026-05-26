@@ -15,7 +15,7 @@ const PixelPlayerPreview: React.FC<PixelPlayerPreviewProps> = ({ avatar, classNa
     if (!canvas) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const size = 112;
+    const size = 144;
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
@@ -31,7 +31,7 @@ const PixelPlayerPreview: React.FC<PixelPlayerPreviewProps> = ({ avatar, classNa
       y: size * 0.58,
       size: size * 0.72,
       avatar,
-      mood: 'happy',
+      mood: 'waiting',
       timeMs: performance.now(),
     });
   }, [avatar]);
