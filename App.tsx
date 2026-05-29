@@ -860,9 +860,9 @@ export default function App() {
         {/* Feel Tuning Section */}
         <div className="relative z-10 mx-auto mt-6 w-full max-w-4xl">
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.24)] backdrop-blur-md">
-            <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-400">
+            <h2 className="mb-4 text-sm font-black uppercase tracking-wider text-slate-400">
               Fine Tuning
-            </h3>
+            </h2>
             <div className="grid gap-3">
               <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2 sm:grid-cols-[8.5rem_1fr]">
                 <div className="text-xs font-black uppercase tracking-[0.16em] text-cyan-200/80">
@@ -1597,9 +1597,9 @@ export default function App() {
 
             <div className="mb-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-left">
               <div className="flex items-center justify-between gap-4">
-                <h3 className="text-sm font-bold text-white">
+                <h2 className="text-sm font-bold text-white">
                   {subjectMode === SubjectMode.MATH ? t.practiceTuning : t.wordPracticeTuning}
-                </h3>
+                </h2>
                 <button
                   onClick={() => setMenuView('tuning')}
                   className="shrink-0 rounded-xl bg-white/10 p-3 text-white transition-all duration-200 hover:bg-white/20 active:scale-95"

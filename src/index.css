@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Fredoka", sans-serif;
+  --color-game-bg: #1e1b4b;
+  --color-game-accent: #4f46e5;
+  --color-game-correct: #22c55e;
+  --color-game-wrong: #ef4444;
+  --color-game-player: #06b6d4;
+  --color-game-text: #f8fafc;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #1e1b4b;
+  color: white;
+  touch-action: none;
+}
+
+.animate-fade-in {
+  animation: fade-in 220ms ease-out both;
+}
+
+.animate-fade-out {
+  animation: fade-out 220ms ease-out both;
+}
+
+.animate-pop-in {
+  animation: pop-in 220ms ease-out both;
+}
+
+.animate-pop-out {
+  animation: pop-out 220ms ease-out both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pop-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(8px) scale(0.985); }
+}
