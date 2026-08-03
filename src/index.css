@@ -18,6 +18,22 @@ body {
   touch-action: none;
 }
 
+/* Honest first paint before React mounts */
+#root:empty::before {
+  content: "Opening Brain Rush…";
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Fredoka", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: rgba(248, 250, 252, 0.72);
+  background: #1e1b4b;
+  z-index: 1;
+}
+
 .animate-fade-in {
   animation: fade-in 220ms ease-out both;
 }
@@ -52,4 +68,19 @@ body {
 @keyframes pop-out {
   from { opacity: 1; transform: translateY(0) scale(1); }
   to { opacity: 0; transform: translateY(8px) scale(0.985); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fade-out,
+  .animate-pop-in,
+  .animate-pop-out {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-pulse {
+    animation: none !important;
+  }
 }

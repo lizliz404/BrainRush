@@ -1,0 +1,172 @@
+/* Premium one-pager craft pack — copy into project base CSS.
+   Pair with premium-one-pager.ts. Respects prefers-reduced-motion. */
+
+:root {
+  /* Brain Rush — indigo/cyan on deep violet (not default sage) */
+  --pop-progress-h: 3px;
+  --pop-progress-from: #06b6d4;
+  --pop-progress-to: #4f46e5;
+  --pop-reveal-y: 28px;
+  --pop-reveal-ms: 520ms;
+  --pop-reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pop-dot-fg: rgba(165, 180, 252, 0.4);
+  --pop-dot-active: rgba(34, 211, 238, 0.95);
+  --pop-scrollbar: rgba(34, 211, 238, 0.4);
+  --pop-selection-bg: rgba(34, 211, 238, 0.35);
+  --pop-selection-fg: #f8fafc;
+  --pop-noise-opacity: 0.04;
+  --pop-focus-ring: rgba(34, 211, 238, 0.85);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: var(--pop-selection-bg);
+  color: var(--pop-selection-fg);
+}
+
+/* 1. Top scroll progress */
+.pop-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: var(--pop-progress-h);
+  width: 0%;
+  z-index: 9999;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--pop-progress-from), var(--pop-progress-to));
+  transform-origin: left center;
+  will-change: width;
+}
+
+/* 2. One-shot viewport reveal (available; init skips on game shell) */
+.pop-reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--pop-reveal-y), 0);
+  transition:
+    opacity var(--pop-reveal-ms) var(--pop-reveal-ease),
+    transform var(--pop-reveal-ms) var(--pop-reveal-ease);
+  will-change: opacity, transform;
+}
+
+.pop-reveal.is-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* 3. Right chapter dots — kept for pack completeness; init disables on this product */
+.pop-chapters {
+  position: fixed;
+  top: 50%;
+  right: max(12px, env(safe-area-inset-right));
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pop-chapters a {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 28px;
+  font-family: "Fredoka", ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--pop-dot-fg);
+  text-decoration: none;
+  border-radius: 999px;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.pop-chapters a[aria-current="true"] {
+  color: var(--pop-dot-active);
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.06);
+}
+
+.pop-chapters a:hover,
+.pop-chapters a:focus-visible {
+  color: var(--pop-dot-active);
+  outline: none;
+}
+
+@media (max-width: 900px) {
+  .pop-chapters {
+    display: none;
+  }
+}
+
+/* 4. Paper noise overlay */
+.pop-noise {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  opacity: var(--pop-noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  mix-blend-mode: overlay; /* dark stage — multiply washes out */
+}
+
+/* Focus + press feedback (chrome only; canvas uses its own flash) */
+:where(button, a, [role="button"]):focus-visible {
+  outline: 2px solid var(--pop-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(button):active {
+    transform: translateY(1px);
+  }
+}
+
+/* 5. Thin scrollbar (Firefox + WebKit) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pop-scrollbar) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--pop-scrollbar);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .pop-progress {
+    display: none;
+  }
+
+  .pop-reveal,
+  .pop-reveal.is-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  :where(button):active {
+    transform: none;
+  }
+}

@@ -8,9 +8,13 @@ import PixelPlayerPreview from './components/PixelPlayerPreview';
 import { Play, RotateCcw, Trophy, Heart, Lock, ArrowLeft, Shirt, SlidersHorizontal, MessageCircle } from 'lucide-react';
 import { ArrowLeftStartOnRectangleIcon, BookOpenIcon, LanguageIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { initAudio, startGameBgm, startMenuBgm, stopBgm } from './services/audioService';
+import { initPremiumOnePager } from './src/lib/premium-one-pager';
 
 type Language = 'en' | 'zh';
 type DeferredPointerAction = { confirm: () => void; message?: string };
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const PEP_WORDS_URL = 'https://pep-words.brainrush.run';
 const TRANSITION_MS = 220;
@@ -101,11 +105,12 @@ const TRANSLATIONS = {
     wordModeDescription: 'Solve fast. Move faster.',
     localTimedBoard: 'Local Timed Board',
     recentMistakes: 'Wrong Answer Book',
-    noMistakes: 'No mistakes saved yet.',
+    noMistakes: 'No mistakes yet. Play a round — wrong answers land here for review.',
     yourAnswer: 'Your answer',
     correctAnswer: 'Correct answer',
     missedAnswer: 'Missed',
-    timedBoardEmpty: 'No 60s runs saved yet.',
+    timedBoardEmpty: 'No 60s runs yet. Start Timed Mode to post a local score.',
+    preparingQuestion: 'Preparing first question…',
     boundaryTitle: 'What this game does',
     boundaryItems: ['Local data only', '60-second practice'],
     seoLabel: 'What is Brain Rush?',
@@ -116,9 +121,9 @@ const TRANSLATIONS = {
     feedbackHint: 'One sentence about what felt wrong is enough.',
     feedbackPlaceholder: 'Example: a question is too hard; mobile controls feel awkward; word mode needs…',
     feedbackSubmit: 'Submit feedback',
-    feedbackSubmitting: 'Submitting…',
+    feedbackSubmitting: 'Sending feedback to Liz…',
     feedbackSubmitted: 'Received. Thank you.',
-    feedbackError: 'Submit failed. You can still send it to Liz directly.',
+    feedbackError: 'Could not reach the feedback service. Try again, or send it to Liz on WeChat.',
     feedbackTabForm: 'Submit here',
     feedbackWechat: 'WeChat',
     feedbackWechatHint: 'Scan WeChat for screenshots, recordings, or one-line feedback.',
@@ -126,8 +131,8 @@ const TRANSLATIONS = {
     feedbackWechatMissing: 'WeChat QR image should be placed at public/wechat-qr.png',
     feedbackClose: 'Close',
     exportData: 'Export my data',
-    clearData: 'Clear local data',
-    clearDataConfirm: 'Clear local Brain Rush data in this browser?',
+    clearData: 'Clear local data forever',
+    clearDataConfirm: 'Clear all local Brain Rush data in this browser? This cannot be undone.',
     firstRunHint: 'Default: Math + Normal. Use Quick Mode for a low-pressure 60s run, or Advanced if you want to tune the questions.',
     storyCta: 'Why I built this',
     storyTitle: 'My brother wanted mental math as a plane-shooter game, so I actually built it',
@@ -205,11 +210,12 @@ const TRANSLATIONS = {
     wordModeDescription: '算得快，躲得更快。',
     localTimedBoard: '本地 60 秒榜',
     recentMistakes: '错题本',
-    noMistakes: '还没有保存的错题。',
+    noMistakes: '还没有错题。先玩一局，答错的题目会出现在这里。',
     yourAnswer: '你的答案',
     correctAnswer: '正确答案',
     missedAnswer: '漏题',
-    timedBoardEmpty: '还没有保存的 60 秒成绩。',
+    timedBoardEmpty: '还没有 60 秒成绩。开始计时模式，成绩会记在本机榜上。',
+    preparingQuestion: '正在准备第一题…',
     boundaryTitle: '这个游戏做什么',
     boundaryItems: ['数据只在本机', '60 秒练习'],
     seoLabel: 'Brain Rush 是什么？',
@@ -220,9 +226,9 @@ const TRANSLATIONS = {
     feedbackHint: '一句话说明哪里不对就行。',
     feedbackPlaceholder: '例如：某道题太难；手机操作不顺；单词模式希望增加……',
     feedbackSubmit: '提交反馈',
-    feedbackSubmitting: '提交中…',
+    feedbackSubmitting: '正在把反馈发给 Liz…',
     feedbackSubmitted: '已收到，感谢。',
-    feedbackError: '提交失败。你也可以把内容发给 Liz。',
+    feedbackError: '反馈服务暂时连不上。请重试，或改用微信发给 Liz。',
     feedbackTabForm: '站内提交',
     feedbackWechat: '微信',
     feedbackWechatHint: '扫码加微信，发截图、录屏或一句话反馈。',
@@ -230,8 +236,8 @@ const TRANSLATIONS = {
     feedbackWechatMissing: '微信二维码图片待放入 public/wechat-qr.png',
     feedbackClose: '关闭',
     exportData: '导出我的数据',
-    clearData: '清除本机数据',
-    clearDataConfirm: '清除这个浏览器里的 Brain Rush 本地数据？',
+    clearData: '永久清除本机数据',
+    clearDataConfirm: '清除这个浏览器里的全部 Brain Rush 本地数据？此操作无法撤销。',
     firstRunHint: '默认：数学 + 普通难度。想低压力试一下，用 60 秒模式；想调题目，再进高级调节。',
     storyCta: '为什么做这个？',
     storyTitle: '我弟想把口算做成飞机大战，真给他做出来了',
@@ -406,7 +412,7 @@ const loadRecordsBySubject = <T,>(keys: Record<SubjectMode, string>): Record<Sub
 });
 
 const fireConfettiAt = (clientX: number, clientY: number, intensity = 0.34) => {
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined' || prefersReducedMotion()) return;
 
   const particleCount = Math.min(
     PARTICLE_CONFIG.maxParticles,
@@ -490,6 +496,16 @@ export default function App() {
       );
     }
   }, [lang]);
+
+  // 附 A light: progress + noise + selection/scrollbar/prm. No chapter dots / reveal on game shell.
+  useEffect(() => {
+    return initPremiumOnePager({
+      enableChapters: false,
+      enableReveal: false,
+      enableProgress: true,
+      enableNoise: true,
+    });
+  }, []);
 
   // Load saved data
   const [highScores, setHighScores] = useState<Record<SubjectMode, number>>(() => loadHighScores());
@@ -1169,7 +1185,7 @@ export default function App() {
 
   return (
     <div
-      className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans selection:bg-none pt-[calc(env(safe-area-inset-top)+4px)] pb-[calc(env(safe-area-inset-bottom)+4px)]"
+      className="relative w-full h-screen overflow-hidden bg-game-bg text-game-text font-sans pt-[calc(env(safe-area-inset-top)+4px)] pb-[calc(env(safe-area-inset-bottom)+4px)]"
       onPointerMove={handleAmbientPointerMove}
       onPointerDown={handleAmbientPointerDown}
     >
@@ -1362,8 +1378,10 @@ export default function App() {
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
                   <div className="flex items-center gap-3">
                     {feedbackStatus === 'submitted' && <span className="text-xs font-bold text-emerald-300">{t.feedbackSubmitted}</span>}
-                    {feedbackStatus === 'error' && <span className="text-xs font-bold text-rose-300">{t.feedbackError}</span>}
-                    <button onClick={submitFeedback} disabled={feedbackText.trim().length === 0 || feedbackStatus === 'submitting'} className="rounded-full bg-amber-200 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40">
+                    {feedbackStatus === 'error' && (
+                      <span className="text-xs font-bold text-rose-300" role="alert">{t.feedbackError}</span>
+                    )}
+                    <button onClick={submitFeedback} disabled={feedbackText.trim().length === 0 || feedbackStatus === 'submitting'} className="rounded-full bg-amber-200 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40" aria-busy={feedbackStatus === 'submitting'}>
                       {feedbackStatus === 'submitting' ? t.feedbackSubmitting : t.feedbackSubmit}
                     </button>
                   </div>
@@ -1498,11 +1516,11 @@ export default function App() {
             {/* Question Card */}
             <div className="max-w-[min(88vw,38rem)] bg-white/95 text-game-bg px-3 py-2 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transform transition-all animate-in fade-in slide-in-from-top-4 duration-300 md:px-6 md:py-4 md:rounded-2xl">
               <h1 className={`${getQuestionTextClass()} font-black tracking-tight text-center break-words`}>
-                {currentQuestion}
+                {currentQuestion || t.preparingQuestion}
               </h1>
             </div>
             
-            <p className="text-white/40 text-[11px] md:text-xs font-semibold tracking-wide uppercase mt-0.5 animate-pulse">
+            <p className="text-white/40 text-[11px] md:text-xs font-semibold tracking-wide uppercase mt-0.5 motion-safe:animate-pulse">
                {t.movePrompt}
             </p>
           </div>
