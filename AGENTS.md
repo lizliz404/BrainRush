@@ -42,15 +42,24 @@ Keep Brain Rush stable, fast, and maintainable. The desired end state is a matur
   - heading hierarchy and important `aria-label`s
 - Keep analytics ID `G-TXVLTJJ878` intact unless explicitly asked.
 
-## Verification
+## Verification and pre-commit checks
 
-Before finishing code changes, run at least:
+This project is deployed via Cloudflare Pages (GitHub Connected). **Cloudflare Preview is your primary verification.** Do not mechanically run `npm run check && npm run build` before every commit.
 
+**When to skip local verification (most changes):**
+- Copy fixes, styling tweaks, config values, static content, markdown
+- Feature work, UI changes, particle tuning, refactors — Cloudflare Preview catches build failures
+
+**When to run local checks:**
+- You changed build configuration (`vite.config.ts`, `_headers`, `_redirects`, `wrangler.toml`, `package.json` scripts/deps, `public/` static asset wiring)
+- You changed `index.html`, game state wiring, or import graph structure
+- Liz explicitly asks for local verification
+
+**When you do run checks, use the lightest one that would catch the failure:**
 ```bash
-npm run check
+npm run check          # lint + typecheck
+npm run build          # only when build plumbing changed
 ```
-
-Run `npm run build` when changing assets, Vite config, `index.html`, imports, public/static output, or game state wiring.
 
 ## Git/deploy
 
