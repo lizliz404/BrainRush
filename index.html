@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Brain Rush｜60 秒口算训练与英语单词小游戏</title>
-    <meta name="description" content="Brain Rush 是免费的儿童口算训练与英语单词小游戏，支持 60 秒速算、单词中英互译、错题本、本地成绩和移动端拖拽练习。" />
+    <meta name="description" content="Brain Rush 是 Liz 做的免费儿童口算与英语单词反应小游戏：60 秒速算、单词中英互译、错题本、本地成绩，适合碎片时间练速度与注意力。" />
     <meta name="keywords" content="Brain Rush,头脑冲刺,口算训练,数学速算,小学数学,英语单词练习,记单词,60秒练习,儿童数学游戏,教育游戏,错题本" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#1e1b4b" />
@@ -22,7 +22,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Brain Rush" />
     <meta property="og:title" content="Brain Rush｜60 秒口算训练与英语单词小游戏" />
-    <meta property="og:description" content="免费的儿童口算训练与英语单词小游戏：60 秒速算、单词中英互译、错题本和本地成绩。" />
+    <meta property="og:description" content="Liz 做的免费儿童口算与英语单词反应小游戏：60 秒速算、单词中英互译、错题本和本地成绩。" />
     <meta property="og:url" content="https://brainrush.run/" />
     <meta property="og:image" content="https://brainrush.run/brain-rush-social.png?v=20260522" />
     <meta property="og:image:width" content="1200" />
@@ -40,23 +40,36 @@
         "@context": "https://schema.org",
         "@graph": [
           {
+            "@type": "Organization",
+            "@id": "https://brainrush.run/#organization",
+            "name": "Brain Rush",
+            "url": "https://brainrush.run/",
+            "logo": "https://brainrush.run/brand-assets/brain-rush-icon-v3.svg",
+            "sameAs": [
+              "https://pep-words.brainrush.run/",
+              "https://lizliz.xyz/"
+            ]
+          },
+          {
             "@type": "WebSite",
+            "@id": "https://brainrush.run/#website",
             "name": "Brain Rush",
             "alternateName": ["头脑冲刺", "BrainRush"],
             "url": "https://brainrush.run/",
             "inLanguage": ["zh-CN", "en"],
             "publisher": {
-              "@type": "Person",
-              "name": "Liz"
+              "@id": "https://brainrush.run/#organization"
             }
           },
           {
-            "@type": "WebApplication",
+            "@type": ["WebApplication", "VideoGame"],
+            "@id": "https://brainrush.run/#app",
             "name": "Brain Rush",
             "alternateName": ["头脑冲刺", "BrainRush"],
             "url": "https://brainrush.run/",
             "image": "https://brainrush.run/brain-rush-social.png?v=20260522",
             "applicationCategory": "EducationalApplication",
+            "genre": ["Educational game", "Mental math", "Vocabulary"],
             "operatingSystem": "Any",
             "browserRequirements": "Requires JavaScript and a modern browser",
             "inLanguage": ["zh-CN", "en"],
@@ -75,8 +88,7 @@
               "priceCurrency": "CNY"
             },
             "publisher": {
-              "@type": "Person",
-              "name": "Liz"
+              "@id": "https://brainrush.run/#organization"
             },
             "author": {
               "@type": "Person",

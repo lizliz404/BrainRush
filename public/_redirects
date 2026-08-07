@@ -1,0 +1,2 @@
+# Prefer apex host (matches canonical / sitemap / OG).
+https://www.brainrush.run/* https://brainrush.run/:splat 301

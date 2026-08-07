@@ -1,0 +1,17 @@
+# Brain Rush
+
+> Free browser game by Liz for 60-second mental-math drills and English↔Chinese word reaction practice. Local scores and mistake book; no account required.
+
+## Product
+
+- What: educational reaction game (口算 + vocabulary)
+- Modes: 60s timed quick start; advanced practice tuning (ops, ranges, remainders, negatives); word 中英互译
+- Data: scores, mistakes, and settings stay in the local browser
+- Maker: Liz
+- Price: free
+
+## Links
+
+- Home: https://brainrush.run/
+- Sitemap: https://brainrush.run/sitemap.xml
+- Sister product (PEP Words): https://pep-words.brainrush.run/
