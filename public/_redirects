@@ -1,2 +1,11 @@
-# Prefer apex host (matches canonical / sitemap / OG).
-https://www.brainrush.run/* https://brainrush.run/:splat 301
+# Deliberately empty of rules.
+#
+# This file cannot redirect www.brainrush.run to the apex host: Cloudflare Pages
+# does not support domain-level redirects (see the support matrix at
+# developers.cloudflare.com/pages/configuration/redirects/ — "Domain-level
+# redirects: ❌"). A rule here looked like it worked but never matched.
+#
+# The www -> apex 301 lives at the zone instead. It only works because
+# www.brainrush.run is proxied (orange cloud); with a DNS-only record Cloudflare
+# never sees the request, so no zone rule can fire. Rollback: delete the
+# "www.brainrush.run/*" Page Rule in the brainrush.run zone.
