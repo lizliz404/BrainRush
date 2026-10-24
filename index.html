@@ -11,8 +11,8 @@
     <meta name="application-name" content="Brain Rush" />
     <meta name="apple-mobile-web-app-title" content="Brain Rush" />
     <link rel="canonical" href="https://brainrush.run/" />
-    <link rel="alternate" hreflang="zh-CN" href="https://brainrush.run/" />
-    <link rel="alternate" hreflang="en" href="https://brainrush.run/" />
+    <!-- One URL serves both languages, so hreflang annotations for zh-CN and en
+         would point at the same document and be ignored. x-default alone is honest. -->
     <link rel="alternate" hreflang="x-default" href="https://brainrush.run/" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <link rel="preload" href="/brand-assets/brain-rush-icon-v3.svg" as="image" type="image/svg+xml" />
@@ -110,7 +110,53 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Static introduction. React replaces this on mount. It exists so crawlers
+      that do not execute JavaScript (including AI answer bots) get the real
+      product facts instead of an empty <div id="root">.
+      Keep it accurate and in sync with the app.
+    -->
+    <div id="root">
+      <div style="min-height:100vh;background:#1e1b4b;color:#e2e8f0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.6;padding:2rem 1.25rem">
+        <main style="max-width:44rem;margin:0 auto">
+          <h1 style="font-size:1.75rem;line-height:1.3;margin:0 0 .5rem">Brain Rush｜60 秒口算训练与英语单词小游戏</h1>
+          <p style="margin:0 0 1.5rem;color:#a5b4fc">Liz 做的免费网页小游戏：60 秒练习口算速度和英语单词识别，不需要注册。</p>
+
+          <section lang="zh-CN">
+            <h2 style="font-size:1.15rem;margin:1.5rem 0 .5rem">可以做什么</h2>
+            <ul style="margin:0 0 1rem;padding-left:1.15rem">
+              <li><strong>60 秒计时模式</strong>：一局一分钟，不用设置就能开练，适合碎片时间。</li>
+              <li><strong>高级调节</strong>：题型倾向（加减／乘除／随机混合）、数值范围（十以内／二十以内／五十以上）、是否允许余数、是否允许负数。</li>
+              <li><strong>英语单词模式</strong>：英译中、中译英或双向混合，和口算共用同一套玩法。</li>
+              <li><strong>错题本</strong>：答错的题自动收进来，数学和单词分开看，方便回头复习。</li>
+              <li><strong>本地成绩榜</strong>：记录本机的 60 秒成绩和正确率。</li>
+              <li><strong>自定义外观</strong>：更衣室里可以换角色和套装。</li>
+            </ul>
+            <h2 style="font-size:1.15rem;margin:1.5rem 0 .5rem">数据放在哪里</h2>
+            <p style="margin:0 0 1rem">成绩、错题、外观和设置只保存在你自己的浏览器里，不上传、不需要账号；可以随时导出或一键清除。</p>
+            <h2 style="font-size:1.15rem;margin:1.5rem 0 .5rem">适合谁</h2>
+            <p style="margin:0 0 1rem">想让小学生练口算速度和注意力、或者想每天过一遍英语单词的家长和孩子。基础练习本身没错，做成游戏只是让它不那么难熬。</p>
+          </section>
+
+          <section lang="en">
+            <h2 style="font-size:1.15rem;margin:1.5rem 0 .5rem">English</h2>
+            <p style="margin:0 0 .75rem">Brain Rush is a free browser game by Liz for 60-second mental-math drills and English↔Chinese word practice. No account, no install.</p>
+            <p style="margin:0 0 .75rem"><strong>Modes:</strong> a 60-second timed round that needs no setup, and an adjustable practice mode (operations, number ranges, remainders, negatives). The word mode runs English→Chinese, Chinese→English, or both in the same round.</p>
+            <p style="margin:0 0 .75rem"><strong>Review:</strong> wrong answers collect in a mistake book, split by math and words. Timed scores and accuracy are kept locally.</p>
+            <p style="margin:0 0 1rem"><strong>Data:</strong> scores, mistakes, avatar, and settings stay in your own browser. Nothing is uploaded, and you can export or clear it at any time.</p>
+          </section>
+
+          <section>
+            <h2 style="font-size:1.15rem;margin:1.5rem 0 .5rem">Links</h2>
+            <ul style="margin:0;padding-left:1.15rem">
+              <li><a href="https://brainrush.run/" style="color:#7dd3fc">brainrush.run</a></li>
+              <li><a href="https://pep-words.brainrush.run/" style="color:#7dd3fc">PEP Words</a> — companion English vocabulary tool by the same maker</li>
+              <li><a href="/llms.txt" style="color:#7dd3fc">llms.txt</a></li>
+            </ul>
+          </section>
+        </main>
+      </div>
+    </div>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,17 +1,42 @@
 # Brain Rush
 
-> Free browser game by Liz for 60-second mental-math drills and English↔Chinese word reaction practice. Local scores and mistake book; no account required.
+> Free browser game by Liz for 60-second mental-math drills and English↔Chinese word
+> reaction practice. No account, no install, no ads. Scores and mistakes stay in the
+> visitor's own browser.
 
-## Product
+## What it is
 
-- What: educational reaction game (口算 + vocabulary)
-- Modes: 60s timed quick start; advanced practice tuning (ops, ranges, remainders, negatives); word 中英互译
-- Data: scores, mistakes, and settings stay in the local browser
-- Maker: Liz
+- Type: single-page browser game (mathematics drill + vocabulary drill)
 - Price: free
+- Made by: Liz
+- Platform: any modern browser, desktop and mobile
+- Interface languages: Chinese and English
+
+## Modes
+
+- 60-second timed round: starts with no setup; question difficulty ramps and the
+  run ends when the timer expires.
+- Adjustable practice: operations focus (addition/subtraction, multiplication/division,
+  or mixed), number range (within 10, within 20, above 50), allow remainders,
+  allow negatives.
+- Word practice: English→Chinese, Chinese→English, or both in one round, using the
+  same catch-the-answer mechanic.
+
+## Review and progress
+
+- Wrong answers are collected in a mistake book, split into math and word lists.
+- Timed runs record score and accuracy on a local board.
+- All of this is stored in the browser only. Visitors can export it, or clear it
+  permanently, from the settings.
+
+## Not claimed
+
+- No accounts, no cloud sync, no leaderboards against other players, no ads.
+- Nothing here is a placement test or a graded curriculum.
 
 ## Links
 
 - Home: https://brainrush.run/
 - Sitemap: https://brainrush.run/sitemap.xml
-- Sister product (PEP Words): https://pep-words.brainrush.run/
+- Companion tool (PEP Words): https://pep-words.brainrush.run/
+- Maker site: https://lizliz.xyz/
